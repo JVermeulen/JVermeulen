@@ -37,16 +37,6 @@ namespace JVermeulen.Tester
             Console.WriteLine($"- OSFriendlyName={AppInfo.OSFriendlyName}");
             Console.WriteLine($"- OSDescription={AppInfo.OSDescription}");
             Console.WriteLine();
-
-            using (var test = new HeartbeatGenerator(AppInfo.Name, TimeSpan.FromSeconds(1)))
-            {
-                test.OnReceive.Subscribe((h) => Console.WriteLine(h.Value.ToString()));
-                test.Start(new EventLoopScheduler());
-
-                Task.Delay(15000).Wait();
-
-                test.Stop();
-            }
         }
     }
 }

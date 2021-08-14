@@ -23,6 +23,8 @@ namespace JVermeulen.Processing
 
         public void Start(IScheduler scheduler = null)
         {
+            base.Start();
+
             if (scheduler == null)
                 scheduler = new EventLoopScheduler();
 
@@ -36,8 +38,10 @@ namespace JVermeulen.Processing
             OnNext(Value);
         }
 
-        public void Stop()
+        public override void Stop()
         {
+            base.Stop();
+
             Cancellation?.Cancel();
         }
 
@@ -46,6 +50,11 @@ namespace JVermeulen.Processing
             var value = new Heartbeat(Name, Value++);
 
             Send(value);
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
         }
     }
 }
