@@ -7,3 +7,4 @@
 /JVermeulen.App/bin
 /JVermeulen.Tester/bin
 /JVermeulen.Tester/obj
+*.user

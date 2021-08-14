@@ -10,7 +10,7 @@ namespace JVermeulen.Tester
             var networkAddresses = NetworkInfo.NetworkAddresses;
 
             Console.WriteLine("NetworkInfo:");
-            foreach(var networkAddress in networkAddresses)
+            foreach (var networkAddress in networkAddresses)
             {
                 Console.WriteLine($"- Address: {networkAddress.Value} ({networkAddress.Key})");
             }
@@ -26,10 +26,13 @@ namespace JVermeulen.Tester
             Console.WriteLine($"- Is64bit={AppInfo.Is64bit}");
             Console.WriteLine($"- FileName={AppInfo.FileName}");
             Console.WriteLine($"- DirectoryName={AppInfo.DirectoryName}");
-            Console.WriteLine($"- RunsSTA={AppInfo.RunsSTA}");
             Console.WriteLine($"- HasUI={AppInfo.HasUI}");
+            Console.WriteLine($"- HasWindow={AppInfo.HasWindow}");
+            Console.WriteLine($"- Type={AppInfo.Type}");
             Console.WriteLine($"- Culture={AppInfo.Culture}");
             Console.WriteLine($"- IsDebug={AppInfo.IsDebug}");
+            Console.WriteLine($"- OSFriendlyName={AppInfo.OSFriendlyName}");
+            Console.WriteLine($"- OSDescription={AppInfo.OSDescription}");
 
             Console.WriteLine();
         }

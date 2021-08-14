@@ -1,12 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net5.0</TargetFramework>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<FileVersion>1.0.0.0</FileVersion>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\JVermeulen.App\JVermeulen.App.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\JVermeulen.App\JVermeulen.App.csproj" />
+	</ItemGroup>
 
 </Project>
