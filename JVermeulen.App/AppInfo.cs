@@ -10,23 +10,28 @@ namespace JVermeulen.App
 {
     public static class AppInfo
     {
-        public static string Name => GetNameFromDomain();
+        public static string Name => GetFriendlyNameFromDomain();
         public static string Title => GetTitleFromAssembly();
         public static string Version => GetVersionFromAssemly();
-        public static string Architecture => $"{IntPtr.Size * 8}-bit";
+        public static string Architecture => Is64bit ? "x64" : "x86";
         public static string Description => $"{Name} {Version} ({Architecture})";
 
         public static Guid Guid => GetGuidFromAssembly();
         public static bool Is64bit => IntPtr.Size == 8;
         public static string FileName => GetFileNameFromCurrentProcess();
         public static string DirectoryName => GetDirectoryFromCurrentDomain();
-        public static bool? RunsSTA => GetSTAFromCurrentThread();
 
         public static bool HasUI => Environment.UserInteractive;
+        public static bool HasWindow => GetHasWindowFromCurrentProcess();
+        public static string Type => HasUI ? (HasWindow ? "Desktop" : "Console") : "Service";
+        
+        public static string OSFriendlyName => GetOSFriendlyName();
+        public static string OSDescription => $"{RuntimeInformation.OSDescription} ({RuntimeInformation.OSArchitecture})";
+
         public static string Culture => CultureInfo.CurrentCulture.DisplayName;
         public static bool IsDebug => GetIsDebug();
 
-        private static string GetNameFromDomain()
+        private static string GetFriendlyNameFromDomain()
         {
             return AppDomain.CurrentDomain.FriendlyName;
         }
@@ -63,14 +68,30 @@ namespace JVermeulen.App
             return Process.GetCurrentProcess().MainModule.FileName;
         }
 
-        private static bool? GetSTAFromCurrentThread()
-        {
-            return Thread.CurrentThread.GetApartmentState() == ApartmentState.STA ? true : (Thread.CurrentThread.GetApartmentState() == ApartmentState.MTA ? false : null);
-        }
-
         private static string GetDirectoryFromCurrentDomain()
         {
             return AppDomain.CurrentDomain.BaseDirectory;
+        }
+
+        private static bool GetHasWindowFromCurrentProcess()
+        {
+            return (Process.GetCurrentProcess().MainWindowHandle != IntPtr.Zero);
+        }
+
+        private static string GetOSFriendlyName()
+        {
+            var type = typeof(OSPlatform);
+            var properties = type.GetProperties().Where(p => p.PropertyType == type);
+
+            foreach (var property in properties)
+            {
+                var platform = (OSPlatform)property.GetValue(new OSPlatform());
+
+                if (RuntimeInformation.IsOSPlatform(platform))
+                    return platform.ToString();
+            }
+
+            return null;
         }
 
         private static bool GetIsDebug()

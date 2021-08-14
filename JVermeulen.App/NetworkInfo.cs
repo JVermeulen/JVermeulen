@@ -19,5 +19,36 @@ namespace JVermeulen.App
             return localEntry.AddressList.Where(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
                                          .ToDictionary(a => a.ToString(), a => Dns.GetHostEntry(a)?.HostName);
         }
+
+        public static bool TryGetDnsInfo(string hostnameOrIpAddress, out string hostname, out string[] ipAddresses)
+        {
+            hostname = null;
+            ipAddresses = null;
+
+            try
+            {
+                if (string.IsNullOrWhiteSpace(hostnameOrIpAddress))
+                    hostnameOrIpAddress = Dns.GetHostName();
+
+                if (IPAddress.TryParse(hostnameOrIpAddress, out IPAddress address))
+                {
+                    hostname = Dns.GetHostEntry(address).HostName;
+                    ipAddresses = new string[] { address.ToString() };
+                }
+                else
+                {
+                    hostname = hostnameOrIpAddress;
+                    ipAddresses = Dns.GetHostEntry(hostnameOrIpAddress).AddressList.Where(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                                                                                   .Select(a => a.ToString())
+                                                                                   .ToArray();
+                }
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }
