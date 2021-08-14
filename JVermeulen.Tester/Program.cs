@@ -37,6 +37,26 @@ namespace JVermeulen.Tester
             Console.WriteLine($"- OSFriendlyName={AppInfo.OSFriendlyName}");
             Console.WriteLine($"- OSDescription={AppInfo.OSDescription}");
             Console.WriteLine();
+
+            Counter = new ValueCounter(1);
+
+            using (var heart = new HeartbeatGenerator(TimeSpan.FromSeconds(1)))
+            {
+                heart.OnReceive.Subscribe(OnHeartbeat);
+                heart.Start();
+
+                Task.Delay(10000).Wait();
+
+                Console.WriteLine(Counter.Value);
+            }
+        }
+
+        private static ValueCounter Counter { get; set; }
+
+        private static void OnHeartbeat(Heartbeat heartbeat)
+        {
+            Console.WriteLine(heartbeat.ToString());
+            Counter.Increment();
         }
     }
 }

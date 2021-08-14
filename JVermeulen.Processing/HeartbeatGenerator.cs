@@ -9,52 +9,54 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.Processing
 {
-    public class HeartbeatGenerator : Generator<Heartbeat>
+    public class HeartbeatGenerator : Inbox<Heartbeat>, IStartStop
     {
         public TimeSpan Interval { get; private set; }
 
         private long Value { get; set; }
         private CancellationTokenSource Cancellation { get; set; }
 
-        public HeartbeatGenerator(string name, TimeSpan interval) : base(name)
+        private TimeCounter Timer { get; set; }
+
+        public HeartbeatGenerator(TimeSpan interval, IScheduler scheduler = null) : base(scheduler ?? new EventLoopScheduler())
         {
             Interval = interval;
+
+            Timer = new TimeCounter();
         }
 
-        public void Start(IScheduler scheduler = null)
+        public void Start()
         {
-            base.Start();
-
-            if (scheduler == null)
-                scheduler = new EventLoopScheduler();
-
             Cancellation = new CancellationTokenSource();
 
             Observable
                 .Interval(Interval)
-                .ObserveOn(scheduler)
+                .ObserveOn(Scheduler)
                 .Subscribe(OnNext, Cancellation.Token);
 
-            OnNext(Value);
+            Timer.Start();
         }
 
-        public override void Stop()
+        public void Stop()
         {
-            base.Stop();
+            Timer.Start();
 
             Cancellation?.Cancel();
         }
 
-        private void OnNext(long count)
+        public void Restart()
         {
-            var value = new Heartbeat(Name, Value++);
+            if (Timer.IsStarted)
+                Stop();
 
-            Send(value);
+            Start();
         }
 
-        public override void Dispose()
+        private void OnNext(long count)
         {
-            base.Dispose();
+            var heartbeat = new Heartbeat(Value++);
+
+            Send(heartbeat);
         }
     }
 }

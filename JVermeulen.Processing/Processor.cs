@@ -8,21 +8,19 @@ namespace JVermeulen.Processing
         private HeartbeatGenerator Generator { get; set; }
         protected EventLoopScheduler Scheduler { get; set; }
 
-        public virtual string Name => this.GetType().Name;
-
         public Inbox<object> Inbox { get; private set; }
 
-        public Processor(TimeSpan heartbeatInterval = default(TimeSpan)) : base(false)
+        public Processor(TimeSpan heartbeatInterval = default) : base()
         {
             Scheduler = new EventLoopScheduler();
 
             Inbox = new Inbox<object>(Scheduler);
-            Inbox.OnReceive.Subscribe(Work);
+            Inbox.OnReceive.Subscribe(OnWork);
 
-            if (heartbeatInterval != default(TimeSpan))
+            if (heartbeatInterval != default)
             {
-                Generator = new HeartbeatGenerator(Name, heartbeatInterval);
-                Generator.OnReceive.Subscribe(Inbox.Send);
+                Generator = new HeartbeatGenerator(heartbeatInterval);
+                Generator.OnReceive.Subscribe(OnHeartbeat);
             }
         }
 
@@ -30,7 +28,9 @@ namespace JVermeulen.Processing
         {
             base.Start();
 
-            Generator?.Start(Scheduler);
+            Generator?.Start();
+
+            OnStarted();
         }
 
         public override void Stop()
@@ -38,9 +38,14 @@ namespace JVermeulen.Processing
             base.Stop();
 
             Generator?.Stop();
+
+            OnStopped();
         }
 
-        public abstract void Work(object value);
+        public abstract void OnWork(object value);
+        public abstract void OnHeartbeat(Heartbeat heartbeat);
+        public abstract void OnStarted();
+        public abstract void OnStopped();
 
         public override void Dispose()
         {

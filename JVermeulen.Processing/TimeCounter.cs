@@ -2,7 +2,7 @@
 
 namespace JVermeulen.Processing
 {
-    public class TimeCounter : IDisposable
+    public class TimeCounter : IStartStop, IDisposable
     {
         public DateTime StartedAt { get; set; }
         public DateTime StoppedAt { get; set; }
@@ -10,10 +10,9 @@ namespace JVermeulen.Processing
 
         public bool IsStarted => StartedAt != default && StoppedAt == default;
 
-        public TimeCounter(bool autoStart)
+        public TimeCounter()
         {
-            if (autoStart)
-                Start();
+            //
         }
 
         public virtual void Start()
@@ -31,7 +30,7 @@ namespace JVermeulen.Processing
         {
             if (IsStarted)
                 Stop();
-            
+
             Start();
         }
 

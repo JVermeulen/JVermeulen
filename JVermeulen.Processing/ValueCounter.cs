@@ -6,43 +6,60 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.Processing
 {
-    public class ValueCounter : TimeCounter
+    public class ValueCounter
     {
         private readonly object SyncLock = new object();
 
+        private TimeCounter Timer { get; set; }
+
+        public double InitialValue { get; private set; }
         public double Value { get; private set; }
         public double Max { get; set; }
 
         private ValueCounter SubCounter { get; set; }
 
-        public ValueCounter(bool autoStart, bool createSubCounter = false) : base(autoStart)
+        public ValueCounter(double initialValue, bool createSubCounter = false)
         {
+            InitialValue = initialValue;
+            Value = InitialValue;
+
             if (createSubCounter)
-                SubCounter = new ValueCounter(autoStart, false);
+                SubCounter = new ValueCounter(0, false);
         }
 
-        public void Add(double value)
+        public double Increment()
         {
-            if (IsStarted)
-            {
-                lock (SyncLock)
-                {
-                    Value += value;
-
-                    SubCounter?.Add(value);
-                }
-            }
+            return Add(1);
         }
 
-        public void Reset()
+        public double Decrement()
+        {
+            return Add(-1);
+        }
+
+        public double Add(double value)
         {
             lock (SyncLock)
             {
-                Value = 0;
+                Value += value;
+
+                SubCounter?.Add(value);
+
+                return Value;
+            }
+        }
+
+        public double Reset()
+        {
+            lock (SyncLock)
+            {
+                Value = InitialValue;
 
                 SubCounter?.Reset();
 
-                base.Restart();
+                Timer.Restart();
+
+                return Value;
             }
         }
 
@@ -55,7 +72,7 @@ namespace JVermeulen.Processing
             {
                 var value = Value;
 
-                valuePerSecond = Duration != default ? value / Duration.TotalSeconds : 0;
+                valuePerSecond = Timer.Duration != default ? value / Timer.Duration.TotalSeconds : 0;
                 percentage = Max > 0 ? Value / Max : 0;
 
                 if (reset)
@@ -72,9 +89,9 @@ namespace JVermeulen.Processing
             return SubCounter?.GetValue(true, out valuePerSecond, out _) ?? 0;
         }
 
-        public override void Dispose()
+        public void Dispose()
         {
-            base.Dispose();
+            Timer.Dispose();
         }
     }
 }
