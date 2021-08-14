@@ -1,0 +1,9 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+*.suo
+/JVermeulen.App/obj
+/JVermeulen.App/bin
+/JVermeulen.Tester/bin
+/JVermeulen.Tester/obj
