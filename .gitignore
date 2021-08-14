@@ -3,8 +3,7 @@
 ################################################################################
 
 *.suo
-/JVermeulen.App/obj
-/JVermeulen.App/bin
-/JVermeulen.Tester/bin
-/JVermeulen.Tester/obj
 *.user
+*.v2
+*/**/bin
+*/**/obj
