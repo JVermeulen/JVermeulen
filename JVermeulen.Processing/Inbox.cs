@@ -9,29 +9,38 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.Processing
 {
-    public class Inbox<T> : IDisposable
+    public abstract class Inbox<T> : IDisposable
     {
         protected IScheduler Scheduler { get; set; }
         private Subject<T> Value { get; set; }
         public IObservable<T> OnReceive => Value.ObserveOn(Scheduler).AsObservable();
-        
-        private ValueCounter Counter { get; set; }
-        public int Count => (int)Counter.Value;
+
+        private ValueCounter ProcessedTasksCounter { get; set; }
+        private ValueCounter PendingTasksCounter { get; set; }
+        public long NumberOfPendingTasks => (long)PendingTasksCounter.Value;
+        public long NumberOfProcessedTasks => (long)ProcessedTasksCounter.Value;
 
         public Inbox(IScheduler scheduler)
         {
             Scheduler = scheduler;
 
             Value = new Subject<T>();
-            Counter = new ValueCounter(0);
-            OnReceive.Subscribe(m => Counter.Decrement());
+            ProcessedTasksCounter = new ValueCounter();
+            PendingTasksCounter = new ValueCounter();
+            OnReceive.Subscribe(OnReceived);
         }
 
         public void Send(T value)
         {
-            Counter.Increment();
+            PendingTasksCounter.Increment();
 
             Value.OnNext(value);
+        }
+
+        private void OnReceived(T value)
+        {
+            PendingTasksCounter.Decrement();
+            ProcessedTasksCounter.Increment();
         }
 
         public void Dispose()

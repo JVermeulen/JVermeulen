@@ -2,7 +2,7 @@
 
 namespace JVermeulen.Processing
 {
-    public interface IStartStop
+    public interface IStartable : IDisposable
     {
         void Start();
         void Stop();

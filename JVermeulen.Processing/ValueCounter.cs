@@ -18,7 +18,7 @@ namespace JVermeulen.Processing
 
         private ValueCounter SubCounter { get; set; }
 
-        public ValueCounter(double initialValue, bool createSubCounter = false)
+        public ValueCounter(double initialValue = 0, bool createSubCounter = false)
         {
             InitialValue = initialValue;
             Value = InitialValue;

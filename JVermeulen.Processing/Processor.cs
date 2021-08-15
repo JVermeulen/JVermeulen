@@ -3,56 +3,92 @@ using System.Reactive.Concurrency;
 
 namespace JVermeulen.Processing
 {
-    public abstract class Processor : TimeCounter
+    public abstract class Processor : Inbox<object>, IStartable
     {
-        private HeartbeatGenerator Generator { get; set; }
-        protected EventLoopScheduler Scheduler { get; set; }
+        public TimeCounter Timer { get; private set; }
+        public HeartbeatGenerator Heart { get; set; }
+        public bool IsStarted => Timer.IsStarted;
 
-        public Inbox<object> Inbox { get; private set; }
+        public abstract void OnTask(object value);
+        public abstract void OnHeartbeat(Heartbeat heartbeat);
+        public abstract void OnExceptionOccured(Exception ex);
+        public abstract void OnStarted();
+        public abstract void OnStopped();
+        public abstract void OnFinished();
 
-        public Processor(TimeSpan heartbeatInterval = default) : base()
+        public Processor() : base(new EventLoopScheduler())
         {
-            Scheduler = new EventLoopScheduler();
+            OnReceive.Subscribe(OnTaskReceived);
 
-            Inbox = new Inbox<object>(Scheduler);
-            Inbox.OnReceive.Subscribe(OnWork);
+            Timer = new TimeCounter();
+        }
 
-            if (heartbeatInterval != default)
+        public void EnableHeartbeat(TimeSpan interval, bool syncScheduler)
+        {
+            if (Heart == null)
             {
-                Generator = new HeartbeatGenerator(heartbeatInterval);
-                Generator.OnReceive.Subscribe(OnHeartbeat);
+                Heart = new HeartbeatGenerator(interval, syncScheduler ? Scheduler : new EventLoopScheduler());
+                Heart.OnReceive.Subscribe(OnHeartbeat);
+
+                if (IsStarted)
+                    Heart.Start();
             }
         }
 
-        public override void Start()
+        public void DisableHeartbeat()
         {
-            base.Start();
-
-            Generator?.Start();
-
-            OnStarted();
+            Heart?.Dispose();
+            Heart = null;
         }
 
-        public override void Stop()
+        private void OnTaskReceived(object value)
         {
-            base.Stop();
+            try
+            {
+                OnTask(value);
 
-            Generator?.Stop();
-
-            OnStopped();
+                if (!IsStarted && NumberOfPendingTasks == 0)
+                    OnFinished();
+            }
+            catch (Exception ex)
+            {
+                OnExceptionOccured(ex);
+            }
         }
 
-        public abstract void OnWork(object value);
-        public abstract void OnHeartbeat(Heartbeat heartbeat);
-        public abstract void OnStarted();
-        public abstract void OnStopped();
+        public void Start()
+        {
+            if (!IsStarted)
+            {
+                Heart?.Start();
+                Timer?.Start();
 
-        public override void Dispose()
+                OnStarted();
+            }
+        }
+
+        public void Stop()
+        {
+            if (IsStarted)
+            {
+                Heart?.Stop();
+                Timer?.Stop();
+
+                OnStopped();
+            }
+        }
+
+        public void Restart()
+        {
+            Stop();
+            Start();
+        }
+
+        public new void Dispose()
         {
             Stop();
 
-            Scheduler?.Dispose();
-            Inbox?.Dispose();
+            base.Dispose();
         }
     }
 }

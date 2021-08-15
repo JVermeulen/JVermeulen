@@ -38,25 +38,35 @@ namespace JVermeulen.Tester
             Console.WriteLine($"- OSDescription={AppInfo.OSDescription}");
             Console.WriteLine();
 
-            Counter = new ValueCounter(1);
+            //using (var heart = new HeartbeatGenerator(TimeSpan.FromSeconds(1)))
+            //{
+            //    heart.OnReceive.Subscribe((h) => Console.WriteLine(h.Id.ToString()));
+            //    heart.Start();
 
-            using (var heart = new HeartbeatGenerator(TimeSpan.FromSeconds(1)))
+            //    Task.Delay(10000).Wait();
+            //}
+
+            using (var processor = new ExampleProcessor())
             {
-                heart.OnReceive.Subscribe(OnHeartbeat);
-                heart.Start();
+                processor.Start();
+
+                Task.Delay(2000).Wait();
+
+                processor.Send(2000);
+                processor.Send(2000);
+                processor.Send(2000);
+                processor.Send(2000);
+                processor.Send(2000);
+
+                Task.Delay(5000).Wait();
+
+                Console.WriteLine($"Total jobs: {processor.NumberOfProcessedTasks}");
+                Console.WriteLine($"Total heartbeats: {processor.Heart.NumberOfProcessedTasks}");
+
+                processor.Stop();
 
                 Task.Delay(10000).Wait();
-
-                Console.WriteLine(Counter.Value);
             }
-        }
-
-        private static ValueCounter Counter { get; set; }
-
-        private static void OnHeartbeat(Heartbeat heartbeat)
-        {
-            Console.WriteLine(heartbeat.ToString());
-            Counter.Increment();
         }
     }
 }
