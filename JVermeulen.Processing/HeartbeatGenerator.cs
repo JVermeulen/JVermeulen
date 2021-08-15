@@ -32,7 +32,7 @@ namespace JVermeulen.Processing
                 Observable
                     .Interval(Interval)
                     .ObserveOn(Scheduler)
-                    .Subscribe(Add, Cancellation.Token);
+                    .Subscribe(Send, Cancellation.Token);
             }
         }
 

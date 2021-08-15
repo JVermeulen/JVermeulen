@@ -52,11 +52,11 @@ namespace JVermeulen.Tester
 
                 Task.Delay(2000).Wait();
 
-                processor.Add(2000);
-                processor.Add(2000);
-                processor.Add(2000);
-                processor.Add(2000);
-                processor.Add(2000);
+                processor.Send(2000);
+                processor.Send(2000);
+                processor.Send(2000);
+                processor.Send(2000);
+                processor.Send(2000);
 
                 Task.Delay(5000).Wait();
             }

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.Tester
 {
-    public class ExampleProcessor : Processor
+    public class ExampleProcessor : Processor<object>
     {
         public ExampleProcessor() : base()
         {
@@ -48,7 +48,7 @@ namespace JVermeulen.Tester
             Console.WriteLine("Stopped");
         }
 
-        public override void OnValueReceived(object value)
+        public override void OnReceived(object value)
         {
             if (value is string text)
                 Console.WriteLine($"Value: {text}");

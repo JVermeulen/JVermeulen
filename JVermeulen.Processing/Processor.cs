@@ -3,23 +3,23 @@ using System.Reactive.Concurrency;
 
 namespace JVermeulen.Processing
 {
-    public abstract class Processor : SubscriptionQueue<object>, IStartable
+    public abstract class Processor<T> : SubscriptionQueue<T>, IStartable
     {
         protected TimeCounter Timer { get; private set; }
         protected IntervalGenerator Heartbeat { get; set; }
         public bool IsStarted => Timer.IsStarted;
 
-        public abstract void OnValueReceived(object value);
+        public abstract void OnReceived(object value);
         public abstract void OnHeartbeat(long count);
-        public abstract void OnExceptionOccured(Exception ex);
         public abstract void OnStarting();
         public abstract void OnStarted();
         public abstract void OnStopping();
         public abstract void OnStopped();
+        public abstract void OnExceptionOccured(Exception ex);
 
         public Processor() : base(new EventLoopScheduler())
         {
-            Queue.Subscribe(OnNext);
+            Queue.Subscribe(OnReceive);
 
             Timer = new TimeCounter();
         }
@@ -42,11 +42,11 @@ namespace JVermeulen.Processing
             Heartbeat = null;
         }
 
-        private void OnNext(object value)
+        private void OnReceive(T value)
         {
             try
             {
-                OnValueReceived(value);
+                OnReceived(value);
 
                 if (!IsStarted && NumberOfValuesPending == 0)
                     OnStopped();

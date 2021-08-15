@@ -27,17 +27,17 @@ namespace JVermeulen.Processing
             Values = new Subject<T>();
             ProcessedValuesCounter = new ValueCounter();
             PendingValuesCounter = new ValueCounter();
-            Queue.Subscribe(OnReceive);
+            Queue.Subscribe(Receive);
         }
 
-        public void Add(T value)
+        public void Send(T value)
         {
             PendingValuesCounter.Increment();
 
             Values.OnNext(value);
         }
 
-        private void OnReceive(T value)
+        private void Receive(T value)
         {
             PendingValuesCounter.Decrement();
             ProcessedValuesCounter.Increment();
