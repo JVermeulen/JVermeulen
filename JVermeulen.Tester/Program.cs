@@ -59,11 +59,9 @@ namespace JVermeulen.Tester
                 processor.Add(2000);
 
                 Task.Delay(5000).Wait();
-
-                processor.Stop();
-
-                Task.Delay(10000).Wait();
             }
+
+            Task.Delay(10000).Wait();
         }
     }
 }

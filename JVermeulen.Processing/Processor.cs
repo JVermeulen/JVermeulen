@@ -5,8 +5,8 @@ namespace JVermeulen.Processing
 {
     public abstract class Processor : SubscriptionQueue<object>, IStartable
     {
-        public TimeCounter Timer { get; private set; }
-        public IntervalGenerator Heartbeat { get; set; }
+        protected TimeCounter Timer { get; private set; }
+        protected IntervalGenerator Heartbeat { get; set; }
         public bool IsStarted => Timer.IsStarted;
 
         public abstract void OnValueReceived(object value);
