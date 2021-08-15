@@ -3,52 +3,53 @@ using System.Reactive.Concurrency;
 
 namespace JVermeulen.Processing
 {
-    public abstract class Processor : Inbox<object>, IStartable
+    public abstract class Processor : SubscriptionQueue<object>, IStartable
     {
         public TimeCounter Timer { get; private set; }
-        public HeartbeatGenerator Heart { get; set; }
+        public IntervalGenerator Heartbeat { get; set; }
         public bool IsStarted => Timer.IsStarted;
 
-        public abstract void OnTask(object value);
-        public abstract void OnHeartbeat(Heartbeat heartbeat);
+        public abstract void OnValueReceived(object value);
+        public abstract void OnHeartbeat(long count);
         public abstract void OnExceptionOccured(Exception ex);
+        public abstract void OnStarting();
         public abstract void OnStarted();
+        public abstract void OnStopping();
         public abstract void OnStopped();
-        public abstract void OnFinished();
 
         public Processor() : base(new EventLoopScheduler())
         {
-            OnReceive.Subscribe(OnTaskReceived);
+            Queue.Subscribe(OnNext);
 
             Timer = new TimeCounter();
         }
 
         public void EnableHeartbeat(TimeSpan interval, bool syncScheduler)
         {
-            if (Heart == null)
+            if (Heartbeat == null)
             {
-                Heart = new HeartbeatGenerator(interval, syncScheduler ? Scheduler : new EventLoopScheduler());
-                Heart.OnReceive.Subscribe(OnHeartbeat);
+                Heartbeat = new IntervalGenerator(interval, syncScheduler ? Scheduler : new EventLoopScheduler());
+                Heartbeat.Queue.Subscribe(OnHeartbeat);
 
                 if (IsStarted)
-                    Heart.Start();
+                    Heartbeat.Start();
             }
         }
 
         public void DisableHeartbeat()
         {
-            Heart?.Dispose();
-            Heart = null;
+            Heartbeat?.Dispose();
+            Heartbeat = null;
         }
 
-        private void OnTaskReceived(object value)
+        private void OnNext(object value)
         {
             try
             {
-                OnTask(value);
+                OnValueReceived(value);
 
-                if (!IsStarted && NumberOfPendingTasks == 0)
-                    OnFinished();
+                if (!IsStarted && NumberOfValuesPending == 0)
+                    OnStopped();
             }
             catch (Exception ex)
             {
@@ -60,7 +61,9 @@ namespace JVermeulen.Processing
         {
             if (!IsStarted)
             {
-                Heart?.Start();
+                OnStarting();
+
+                Heartbeat?.Start();
                 Timer?.Start();
 
                 OnStarted();
@@ -71,10 +74,10 @@ namespace JVermeulen.Processing
         {
             if (IsStarted)
             {
-                Heart?.Stop();
-                Timer?.Stop();
+                OnStopping();
 
-                OnStopped();
+                Heartbeat?.Stop();
+                Timer?.Stop();
             }
         }
 

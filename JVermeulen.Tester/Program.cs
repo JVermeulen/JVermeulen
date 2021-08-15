@@ -52,16 +52,13 @@ namespace JVermeulen.Tester
 
                 Task.Delay(2000).Wait();
 
-                processor.Send(2000);
-                processor.Send(2000);
-                processor.Send(2000);
-                processor.Send(2000);
-                processor.Send(2000);
+                processor.Add(2000);
+                processor.Add(2000);
+                processor.Add(2000);
+                processor.Add(2000);
+                processor.Add(2000);
 
                 Task.Delay(5000).Wait();
-
-                Console.WriteLine($"Total jobs: {processor.NumberOfProcessedTasks}");
-                Console.WriteLine($"Total heartbeats: {processor.Heart.NumberOfProcessedTasks}");
 
                 processor.Stop();
 

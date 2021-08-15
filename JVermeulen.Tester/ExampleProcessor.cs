@@ -19,9 +19,16 @@ namespace JVermeulen.Tester
             Console.WriteLine($"Error: {ex.Message}");
         }
 
-        public override void OnHeartbeat(Heartbeat heartbeat)
+        public override void OnHeartbeat(long count)
         {
-            Console.WriteLine($"Hearbeat ({heartbeat.Id}) Pending tasks {NumberOfPendingTasks}");
+            Console.WriteLine($"Hearbeat ({count}) Pending values {NumberOfValuesPending}");
+        }
+
+        public override void OnStarting()
+        {
+            Console.WriteLine("Starting");
+
+            Task.Delay(1000).Wait();
         }
 
         public override void OnStarted()
@@ -29,26 +36,28 @@ namespace JVermeulen.Tester
             Console.WriteLine("Started");
         }
 
+        public override void OnStopping()
+        {
+            Console.WriteLine("Stopping");
+        }
+
         public override void OnStopped()
         {
+            Console.WriteLine($"Number of values processed: {NumberOfValuesProcessed}");
+            Console.WriteLine($"Number of values pending: {NumberOfValuesPending}");
             Console.WriteLine("Stopped");
         }
 
-        public override void OnTask(object value)
+        public override void OnValueReceived(object value)
         {
             if (value is string text)
-                Console.WriteLine($"Work: {text}");
+                Console.WriteLine($"Value: {text}");
             else if (value is int delay)
             {
-                Console.WriteLine("Delay started");
+                Console.WriteLine("Value process started");
                 Task.Delay(delay).Wait();
-                Console.WriteLine("Delay stopped");
+                Console.WriteLine("Value process stopped");
             }
-        }
-
-        public override void OnFinished()
-        {
-            Console.WriteLine("Finished");
         }
     }
 }

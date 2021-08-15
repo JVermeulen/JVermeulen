@@ -9,34 +9,30 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.Processing
 {
-    public class HeartbeatGenerator : Inbox<Heartbeat>, IStartable
+    public class IntervalGenerator : SubscriptionQueue<long>, IStartable
     {
+        public bool IsStarted { get; set; }
         public TimeSpan Interval { get; private set; }
-
+        
         private CancellationTokenSource Cancellation { get; set; }
 
-        public TimeCounter Timer { get; private set; }
-        public bool IsStarted => Timer.IsStarted;
-
-        public HeartbeatGenerator(TimeSpan interval, IScheduler scheduler = null) : base(scheduler ?? new EventLoopScheduler())
+        public IntervalGenerator(TimeSpan interval, IScheduler scheduler = null) : base(scheduler ?? new EventLoopScheduler())
         {
             Interval = interval;
-
-            Timer = new TimeCounter();
         }
 
         public void Start()
         {
             if (!IsStarted)
             {
+                IsStarted = true;
+
                 Cancellation = new CancellationTokenSource();
 
                 Observable
                     .Interval(Interval)
                     .ObserveOn(Scheduler)
-                    .Subscribe(OnNext, Cancellation.Token);
-
-                Timer.Start();
+                    .Subscribe(Add, Cancellation.Token);
             }
         }
 
@@ -46,7 +42,7 @@ namespace JVermeulen.Processing
             {
                 Cancellation?.Cancel();
 
-                Timer.Stop();
+                IsStarted = false;
             }
         }
 
@@ -54,13 +50,6 @@ namespace JVermeulen.Processing
         {
             Stop();
             Start();
-        }
-
-        private void OnNext(long count)
-        {
-            var heartbeat = new Heartbeat(count);
-
-            Send(heartbeat);
         }
     }
 }
