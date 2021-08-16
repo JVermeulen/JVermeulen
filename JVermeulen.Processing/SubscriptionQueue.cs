@@ -9,43 +9,71 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.Processing
 {
-    public abstract class SubscriptionQueue<T> : IDisposable
+    public class SubscriptionQueue<T> : IDisposable
     {
         protected IScheduler Scheduler { get; set; }
-        private Subject<T> Values { get; set; }
-        internal IObservable<T> Queue => Values.ObserveOn(Scheduler).AsObservable();
+        private Subject<T> Value { get; set; }
+        protected IObservable<T> Queue => Value.ObserveOn(Scheduler).AsObservable();
 
         private ValueCounter ProcessedValuesCounter { get; set; }
         private ValueCounter PendingValuesCounter { get; set; }
+
         public long NumberOfValuesPending => (long)PendingValuesCounter.Value;
         public long NumberOfValuesProcessed => (long)ProcessedValuesCounter.Value;
 
-        public SubscriptionQueue(IScheduler scheduler)
+        public SubscriptionQueue(IScheduler scheduler = null)
         {
-            Scheduler = scheduler;
+            Scheduler = scheduler ?? new EventLoopScheduler();
+            Value = new Subject<T>();
 
-            Values = new Subject<T>();
             ProcessedValuesCounter = new ValueCounter();
             PendingValuesCounter = new ValueCounter();
-            Queue.Subscribe(Receive);
+
+            Queue.Subscribe(OnDequeue);
         }
 
-        public void Send(T value)
+        private static Action<T> ActionAndCatch(Action<T> action, Action<Exception> catchAction)
+        {
+            return item =>
+            {
+                try
+                {
+                    action(item);
+                }
+                catch (Exception ex)
+                {
+                    catchAction(ex);
+                }
+            };
+        }
+
+        public IDisposable Subscribe(Action<T> onNext, Action<Exception> onError = null)
+        {
+            return Queue.Subscribe(ActionAndCatch(onNext, onError ?? OnError), OnError);
+        }
+
+        public void Enqueue(T value)
         {
             PendingValuesCounter.Increment();
 
-            Values.OnNext(value);
+            if (!Value.IsDisposed)
+                Value.OnNext(value);
         }
 
-        private void Receive(T value)
+        private void OnDequeue(T value)
         {
             PendingValuesCounter.Decrement();
             ProcessedValuesCounter.Increment();
         }
 
+        private void OnError(Exception ex)
+        {
+            // Ignore and continue
+        }
+
         public void Dispose()
         {
-            Values?.Dispose();
+            Value?.Dispose();
         }
     }
 }

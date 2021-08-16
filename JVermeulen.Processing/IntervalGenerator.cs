@@ -9,47 +9,39 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.Processing
 {
-    public class IntervalGenerator : SubscriptionQueue<long>, IStartable
+    public class IntervalGenerator : Session
     {
         public bool IsStarted { get; set; }
         public TimeSpan Interval { get; private set; }
-        
+
+        private SubscriptionQueue<long> Queue { get; set; }
         private CancellationTokenSource Cancellation { get; set; }
 
         public IntervalGenerator(TimeSpan interval, IScheduler scheduler = null) : base(scheduler ?? new EventLoopScheduler())
         {
             Interval = interval;
+
+            Queue = new SubscriptionQueue<long>(scheduler);
         }
 
-        public void Start()
+        public override void OnStarting()
         {
-            if (!IsStarted)
-            {
-                IsStarted = true;
+            Cancellation = new CancellationTokenSource();
 
-                Cancellation = new CancellationTokenSource();
-
-                Observable
-                    .Interval(Interval)
-                    .ObserveOn(Scheduler)
-                    .Subscribe(Send, Cancellation.Token);
-            }
+            Observable
+                .Interval(Interval)
+                .ObserveOn(Scheduler)
+                .Subscribe(Queue.Enqueue, Cancellation.Token);
         }
 
-        public void Stop()
+        public IDisposable Subscribe(Action<long> onNext, Action<Exception> onError = null)
         {
-            if (IsStarted)
-            {
-                Cancellation?.Cancel();
-
-                IsStarted = false;
-            }
+            return Queue.Subscribe(onNext, onError);
         }
 
-        public void Restart()
+        public override void OnStopping()
         {
-            Stop();
-            Start();
+            Cancellation?.Cancel();
         }
     }
 }

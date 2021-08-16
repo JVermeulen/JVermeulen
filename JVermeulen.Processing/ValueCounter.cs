@@ -10,7 +10,7 @@ namespace JVermeulen.Processing
     {
         private readonly object SyncLock = new object();
 
-        private TimeCounter Timer { get; set; }
+        private Session Timer { get; set; }
 
         public double InitialValue { get; private set; }
         public double Value { get; private set; }
@@ -91,7 +91,7 @@ namespace JVermeulen.Processing
 
         public void Dispose()
         {
-            Timer.Dispose();
+            Timer?.Dispose();
         }
     }
 }

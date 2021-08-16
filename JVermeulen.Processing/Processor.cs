@@ -3,13 +3,13 @@ using System.Reactive.Concurrency;
 
 namespace JVermeulen.Processing
 {
-    public abstract class Processor<T> : SubscriptionQueue<T>, IStartable
+    public abstract class Processor<T> : SubscriptionQueue<T>, ISession
     {
-        protected TimeCounter Timer { get; private set; }
+        protected Session Timer { get; private set; }
         protected IntervalGenerator Heartbeat { get; set; }
-        public bool IsStarted => Timer.IsStarted;
+        public bool IsStarted => Timer.Status == SessionStatus.Started;
 
-        public abstract void OnReceived(object value);
+        public abstract void OnReceived(T value);
         public abstract void OnHeartbeat(long count);
         public abstract void OnStarting();
         public abstract void OnStarted();
@@ -21,7 +21,7 @@ namespace JVermeulen.Processing
         {
             Queue.Subscribe(OnReceive);
 
-            Timer = new TimeCounter();
+            Timer = new Session();
         }
 
         public void EnableHeartbeat(TimeSpan interval, bool syncScheduler)
@@ -29,7 +29,7 @@ namespace JVermeulen.Processing
             if (Heartbeat == null)
             {
                 Heartbeat = new IntervalGenerator(interval, syncScheduler ? Scheduler : new EventLoopScheduler());
-                Heartbeat.Queue.Subscribe(OnHeartbeat);
+                Heartbeat.Subscribe(OnHeartbeat);
 
                 if (IsStarted)
                     Heartbeat.Start();
