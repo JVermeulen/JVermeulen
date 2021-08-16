@@ -9,15 +9,14 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.Processing
 {
-    public class IntervalGenerator : Session
+    public class HeartbeatSession : Session
     {
-        public bool IsStarted { get; set; }
         public TimeSpan Interval { get; private set; }
 
         private SubscriptionQueue<long> Queue { get; set; }
         private CancellationTokenSource Cancellation { get; set; }
 
-        public IntervalGenerator(TimeSpan interval, IScheduler scheduler = null) : base(scheduler ?? new EventLoopScheduler())
+        public HeartbeatSession(TimeSpan interval, IScheduler scheduler = null) : base(scheduler ?? new EventLoopScheduler())
         {
             Interval = interval;
 

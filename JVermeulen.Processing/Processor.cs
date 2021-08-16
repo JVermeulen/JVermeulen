@@ -6,7 +6,7 @@ namespace JVermeulen.Processing
     public abstract class Processor<T> : SubscriptionQueue<T>, ISession
     {
         protected Session Timer { get; private set; }
-        protected IntervalGenerator Heartbeat { get; set; }
+        protected HeartbeatSession Heartbeat { get; set; }
         public bool IsStarted => Timer.Status == SessionStatus.Started;
 
         public abstract void OnReceived(T value);
@@ -28,7 +28,7 @@ namespace JVermeulen.Processing
         {
             if (Heartbeat == null)
             {
-                Heartbeat = new IntervalGenerator(interval, syncScheduler ? Scheduler : new EventLoopScheduler());
+                Heartbeat = new HeartbeatSession(interval, syncScheduler ? Scheduler : new EventLoopScheduler());
                 Heartbeat.Subscribe(OnHeartbeat);
 
                 if (IsStarted)
