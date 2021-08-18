@@ -20,7 +20,11 @@ namespace JVermeulen.Tester
                 //    Task.Delay(5000).Wait();
                 //}
 
-                Task.Delay(10000).Wait();
+                Task.Delay(15000).Wait();
+                server.Server.Stop();
+
+                var report = server.Server.CreateSessionReport();
+                Console.WriteLine($"{report}");
             }
         }
 

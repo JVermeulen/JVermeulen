@@ -11,8 +11,9 @@ namespace JVermeulen.TCP
         public string Destination { get; private set; }
         public bool IsIncoming { get; private set; }
         public T Content { get; private set; }
+        public int ContentInBytes { get; private set; }
 
-        public TcpMessage(string sender, string destination, bool isIncoming, T content)
+        public TcpMessage(string sender, string destination, bool isIncoming, T content, int contentInBytes)
         {
             Id = Guid.NewGuid();
             CreatedAt = DateTime.Now;
@@ -21,6 +22,7 @@ namespace JVermeulen.TCP
             Destination = destination;
             IsIncoming = isIncoming;
             Content = content;
+            ContentInBytes = contentInBytes;
         }
 
         public override string ToString()

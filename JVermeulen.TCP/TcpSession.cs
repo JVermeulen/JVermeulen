@@ -96,12 +96,10 @@ namespace JVermeulen.TCP
 
         private void OnSend(SocketAsyncEventArgs e)
         {
-            var size = e.BytesTransferred;
-
             NumberOfBytesSent.Add(e.BytesTransferred);
             NumberOfMessagesSent.Increment();
 
-            var message = new TcpMessage<T>(LocalAddress, RemoteAddress, false, (T)e.UserToken);
+            var message = new TcpMessage<T>(LocalAddress, RemoteAddress, false, (T)e.UserToken, e.BytesTransferred);
             MessageQueue.Enqueue(new(this, message));
         }
 
@@ -144,18 +142,16 @@ namespace JVermeulen.TCP
             {
                 if (Status == SessionStatus.Started)
                 {
-                    var size = e.BytesTransferred;
-
-                    if (size > 0 && e.SocketError == SocketError.Success)
+                    if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
                     {
-                        ReceiveBuffer.AddBufferToData(size);
+                        ReceiveBuffer.AddBufferToData(e.BytesTransferred);
 
                         while (ReceiveBuffer.Data.Length > 0 && Encoder.TryFindContent(ReceiveBuffer.Data, out T content, out byte[] nextContent))
                         {
                             NumberOfBytesReceived.Add(ReceiveBuffer.Data.Length - nextContent.Length);
                             NumberOfMessagesReceived.Increment();
 
-                            var message = new TcpMessage<T>(RemoteAddress, LocalAddress, true, content);
+                            var message = new TcpMessage<T>(RemoteAddress, LocalAddress, true, content, e.BytesTransferred);
                             MessageQueue.Enqueue(new SessionMessage(this, message));
 
                             ReceiveBuffer.Data = nextContent;

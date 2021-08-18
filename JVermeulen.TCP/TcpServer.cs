@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Reactive.Concurrency;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -14,19 +13,15 @@ namespace JVermeulen.TCP
     {
         private Socket Socket { get; set; }
         private SocketAsyncEventArgs AcceptorEventArgs { get; set; }
-        public List<TcpSession<T>> Sessions { get; private set; }
         private IPEndPoint LocalEndPoint { get; set; }
         public string ServerAddress { get; private set; }
+
         public ITcpEncoder<T> Encoder { get; private set; }
+        public List<TcpSession<T>> Sessions { get; private set; }
         public List<TcpSession<T>> ConnectedSessions => Sessions.Where(s => s.Socket.Connected).ToList();
 
-        public long NumberOfBytesReceived => (long)Sessions.Sum(s => s.NumberOfBytesReceived.Value);
-        public long NumberOfBytesSent => (long)Sessions.Sum(s => s.NumberOfBytesSent.Value);
-        public long NumberOfMessagesReceived => (long)Sessions.Sum(s => s.NumberOfMessagesReceived.Value);
-        public long NumberOfMessagesSent => (long)Sessions.Sum(s => s.NumberOfMessagesSent.Value);
-        public long NumberOfConnectedClients => ConnectedSessions.Count;
-
         public SubscriptionQueue<SessionMessage> MessageQueue { get; private set; }
+        public TcpReport Statistics { get; private set; }
 
         public TcpServer(ITcpEncoder<T> encoder, int port) : this(encoder, new IPEndPoint(IPAddress.Any, port))
         {
@@ -42,11 +37,7 @@ namespace JVermeulen.TCP
             Sessions = new List<TcpSession<T>>();
 
             MessageQueue = new SubscriptionQueue<SessionMessage>();
-        }
-
-        public virtual void OnErrorOccured(SocketError error)
-        {
-            Console.WriteLine(error.ToString());
+            Statistics = new TcpReport();
         }
 
         public override void OnStarting()
@@ -82,19 +73,45 @@ namespace JVermeulen.TCP
             if (e.SocketError == SocketError.Success)
             {
                 var session = new TcpSession<T>(e.AcceptSocket, true, Encoder);
-                session.MessageQueue.Subscribe(e => MessageQueue.Enqueue(new SessionMessage(this, e)));
-                session.Subscribe(e => Queue.Enqueue(new SessionMessage(this, e)));
+                session.Subscribe(OnMessageQueue);
+                session.MessageQueue.Subscribe(OnMessageQueue);
                 session.Start();
 
                 Sessions.Add(session);
             }
             else
             {
-                OnErrorOccured(e.SocketError);
+                Queue.Enqueue(new SessionMessage(this, e.SocketError));
             }
 
             if (Status == SessionStatus.Started)
                 WaitForClients(e);
+        }
+
+        private void OnMessageQueue(SessionMessage message)
+        {
+            MessageQueue.Enqueue(new SessionMessage(this, message));
+
+            if (message.Value is SessionStatus sessionStatus)
+            {
+                if (sessionStatus == SessionStatus.Started)
+                    Statistics.NumberOfConnectedClients++;
+                else if (sessionStatus == SessionStatus.Stopped)
+                    Statistics.NumberOfDisconnectedClients++;
+            }
+            else if (message.Value is TcpMessage<T> tcpMessage)
+            {
+                if (tcpMessage.IsIncoming)
+                {
+                    Statistics.NumberOfBytesReceived += tcpMessage.ContentInBytes;
+                    Statistics.NumberOfMessagesReceived++;
+                }
+                else
+                {
+                    Statistics.NumberOfBytesSent += tcpMessage.ContentInBytes;
+                    Statistics.NumberOfMessagesSent++;
+                }
+            }
         }
 
         public override void OnStopping()
@@ -103,13 +120,14 @@ namespace JVermeulen.TCP
 
             Sessions.ForEach(s => s.Stop());
 
+            // Wait for empty MessageQueue
             while (MessageQueue.NumberOfValuesPending > 0)
                 Task.Delay(10).Wait();
         }
 
-        public void Send(T content, string clientAddress = "*")
+        public void Send(T content, string filterClientAddress = null)
         {
-            var sessions = clientAddress == "*" ? ConnectedSessions : ConnectedSessions.Where(c => clientAddress != null && clientAddress.Equals(c.RemoteAddress, StringComparison.OrdinalIgnoreCase)).ToList();
+            var sessions = filterClientAddress == null ? ConnectedSessions : ConnectedSessions.Where(c => filterClientAddress.StartsWith(filterClientAddress, StringComparison.OrdinalIgnoreCase)).ToList();
 
             sessions.ForEach(s => s.Write(content));
         }
@@ -118,7 +136,13 @@ namespace JVermeulen.TCP
         {
             var yesterday = DateTime.Now.AddDays(-1);
 
-            var oldSessions = Sessions.Where(s => s.Status == SessionStatus.Stopped && s.StoppedAt < yesterday);
+            CleanupSessions(yesterday);
+            CreateHeartbeatReport();
+        }
+
+        public void CleanupSessions(DateTime beforeStoppedAt)
+        {
+            var oldSessions = Sessions.Where(s => s.Status == SessionStatus.Stopped && s.StoppedAt < beforeStoppedAt);
 
             foreach (var session in oldSessions)
             {
@@ -126,6 +150,30 @@ namespace JVermeulen.TCP
 
                 Sessions.Remove(session);
             }
+        }
+
+        public TcpReport CreateSessionReport()
+        {
+            return new TcpReport
+            {
+                StartedAt = StartedAt,
+                StoppedAt = StoppedAt != default ? StoppedAt : DateTime.Now,
+                NumberOfConnectedClients = Sessions.Count(),
+                NumberOfDisconnectedClients = Sessions.Count(s => !s.IsConnected),
+                NumberOfBytesReceived = Sessions.Sum(s => s.NumberOfBytesReceived.Value),
+                NumberOfBytesSent = Sessions.Sum(s => s.NumberOfBytesSent.Value),
+                NumberOfMessagesReceived = Sessions.Sum(s => s.NumberOfMessagesReceived.Value),
+                NumberOfMessagesSent = Sessions.Sum(s => s.NumberOfMessagesSent.Value),
+            };
+        }
+
+        private void CreateHeartbeatReport()
+        {
+            Statistics.StoppedAt = DateTime.Now;
+
+            Queue.Enqueue(new SessionMessage(this, Statistics));
+
+            Statistics = new TcpReport();
         }
 
         public override string ToString()
