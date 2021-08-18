@@ -15,7 +15,8 @@ namespace JVermeulen.Tester
             {
                 server.Queue.OptionWriteToConsole = true;
                 server.MessageQueue.OptionWriteToConsole = true;
-                server.OptionBroadcastToAllClients = true;
+                server.OptionBroadcastMessages = true;
+                server.OptionEchoMessages = true;
 
                 server.Start();
                 //using (var client = new TcpClient<string>(XmlTcpEncoder.UTF8Encoder, "127.0.0.1", 6000))

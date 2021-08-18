@@ -14,7 +14,8 @@ namespace JVermeulen.TCP
         public override bool IsServer => true;
         private SocketAsyncEventArgs AcceptorEventArgs { get; set; }
 
-        public bool OptionBroadcastToAllClients { get; set; } = false;
+        public bool OptionBroadcastMessages { get; set; } = false;
+        public bool OptionEchoMessages { get; set; }
 
         public TcpServer(ITcpEncoder<T> encoder, int port) : this(encoder, new IPEndPoint(IPAddress.Any, port))
         {
@@ -73,12 +74,28 @@ namespace JVermeulen.TCP
         {
             base.OnSessionMessage(message);
 
-            if (OptionBroadcastToAllClients && message.Value is TcpMessage<T> tcpMessage && tcpMessage.IsIncoming)
+            if (message.Value is TcpMessage<T> tcpMessage && tcpMessage.IsIncoming)
             {
-                var sessions = Sessions.Where(s => s.IsConnected && s.RemoteAddress != tcpMessage.Sender).ToList();
+                if (OptionBroadcastMessages)
+                    Broadcast(tcpMessage.Sender, tcpMessage.Content);
 
-                sessions.ForEach(s => s.Write(tcpMessage.Content));
+                if (OptionEchoMessages)
+                    Echo(tcpMessage.Sender, tcpMessage.Content);
             }
+        }
+
+        public void Broadcast(string sender, T content)
+        {
+            var sessions = Sessions.Where(s => s.IsConnected && s.RemoteAddress != sender).ToList();
+
+            sessions.ForEach(s => s.Write(content));
+        }
+
+        public void Echo(string sender, T content)
+        {
+            var sessions = Sessions.Where(s => s.IsConnected && s.RemoteAddress == sender).ToList();
+
+            sessions.ForEach(s => s.Write(content));
         }
 
         public override string ToString()
