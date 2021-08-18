@@ -18,5 +18,10 @@ namespace JVermeulen.Processing
             Sender = sender;
             Value = value;
         }
+
+        public override string ToString()
+        {
+            return $"{Sender}: {Value}";
+        }
     }
 }

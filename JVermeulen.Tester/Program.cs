@@ -11,20 +11,22 @@ namespace JVermeulen.Tester
     {
         static void Main(string[] args)
         {
-            using (var server = new ExampleTcpServer(6000))
+            using (var server = new TcpServer<string>(XmlTcpEncoder.UTF8Encoder, 6000))
             {
-                using (var client = new TcpClient<string>(XmlTcpEncoder.UTF8Encoder, "127.0.0.1", 6000))
-                {
-                    client.Start();
+                server.Queue.OptionWriteToConsole = true;
+                server.MessageQueue.OptionWriteToConsole = true;
+                server.OptionBroadcastToAllClients = true;
 
-                    Task.Delay(5000).Wait();
-                }
+                server.Start();
+                //using (var client = new TcpClient<string>(XmlTcpEncoder.UTF8Encoder, "127.0.0.1", 6000))
+                //{
+                //    client.Queue.OptionWriteToConsole = true;
+                //    //client.MessageQueue.OptionWriteToConsole = true;
 
-                Task.Delay(60000).Wait();
-                server.Server.Stop();
+                //    Task.Delay(15000).Wait();
+                //}
 
-                var report = server.Server.CreateSessionReport();
-                Console.WriteLine($"{report}");
+                Task.Delay(30000).Wait();
             }
         }
 

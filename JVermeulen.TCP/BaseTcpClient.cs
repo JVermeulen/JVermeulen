@@ -11,10 +11,10 @@ namespace JVermeulen.TCP
 {
     public abstract class BaseTcpClient<T> : HeartbeatSession
     {
+        public abstract bool IsServer { get; }
         protected Socket Socket { get; set; }
         protected IPEndPoint ServerEndPoint { get; set; }
         public string ServerAddress { get; private set; }
-
         public ITcpEncoder<T> Encoder { get; private set; }
         public List<TcpSession<T>> Sessions { get; private set; }
         public List<TcpSession<T>> ConnectedSessions => Sessions.Where(s => s.Socket.Connected).ToList();
@@ -22,8 +22,8 @@ namespace JVermeulen.TCP
         public SubscriptionQueue<SessionMessage> MessageQueue { get; private set; }
         public TcpReport Statistics { get; private set; }
 
-        public bool OptionSendReportOnHeartbeat { get; set; }
-        public bool OptionCleanupSessionsOnHeartbeat { get; set; }
+        public bool OptionSendReportOnHeartbeat { get; set; } = false;
+        public bool OptionCleanupSessionsOnHeartbeat { get; set; } = false;
 
         public BaseTcpClient(ITcpEncoder<T> encoder, IPEndPoint serverEndpoint, TimeSpan interval) : base(interval)
         {
@@ -50,11 +50,11 @@ namespace JVermeulen.TCP
 
         protected void OnClientConnected(SocketAsyncEventArgs e)
         {
-            if (Status == SessionStatus.Started || Status == SessionStatus.Starting)
+            if (Status == SessionStatus.Starting || Status == SessionStatus.Started)
             {
                 if (e.SocketError == SocketError.Success)
                 {
-                    var session = new TcpSession<T>(e.AcceptSocket ?? e.ConnectSocket, true, Encoder);
+                    var session = new TcpSession<T>(e.AcceptSocket ?? e.ConnectSocket, IsServer, Encoder);
                     session.Subscribe(OnSessionMessage);
                     session.MessageQueue.Subscribe(OnSessionMessage);
                     session.Start();
@@ -75,7 +75,7 @@ namespace JVermeulen.TCP
             sessions.ForEach(s => s.Write(content));
         }
 
-        protected void OnSessionMessage(SessionMessage message)
+        protected virtual void OnSessionMessage(SessionMessage message)
         {
             MessageQueue.Enqueue(new SessionMessage(this, message));
 
@@ -101,8 +101,10 @@ namespace JVermeulen.TCP
             }
         }
 
-        public override void OnHeartbeatReceived(long count)
+        protected override void OnHeartbeat(long count)
         {
+            base.OnHeartbeat(count);
+
             var yesterday = DateTime.Now.AddDays(-1);
 
             if (OptionCleanupSessionsOnHeartbeat)

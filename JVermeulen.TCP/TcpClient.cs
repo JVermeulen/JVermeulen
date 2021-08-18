@@ -11,19 +11,24 @@ namespace JVermeulen.TCP
 {
     public class TcpClient<T> : BaseTcpClient<T>
     {
-        private IPEndPoint ClientEndPoint { get; set; }
+        public override bool IsServer => false;
+        public bool IsConnected => Socket.Connected;
+
+        protected IPEndPoint ClientEndPoint { get; set; }
         public string ClientAddress { get; private set; }
 
         private SocketAsyncEventArgs ConnectorEventArgs { get; set; }
 
         private readonly ManualResetEvent ConnectSignal = new ManualResetEvent(false);
 
+        public bool OptionReconnectOnHeatbeat { get; set; } = true;
+
         public TcpClient(ITcpEncoder<T> encoder, string address, int port) : this(encoder, new IPEndPoint(IPAddress.Parse(address), port))
         {
             //
         }
 
-        public TcpClient(ITcpEncoder<T> encoder, IPEndPoint serverEndPoint) : base(encoder, serverEndPoint, TimeSpan.FromSeconds(5))
+        public TcpClient(ITcpEncoder<T> encoder, IPEndPoint serverEndPoint) : base(encoder, serverEndPoint, TimeSpan.FromSeconds(15))
         {
             //
         }
@@ -36,34 +41,63 @@ namespace JVermeulen.TCP
             ConnectorEventArgs.RemoteEndPoint = ServerEndPoint;
             ConnectorEventArgs.Completed += OnClientConnecting;
 
-            Socket = new Socket(ServerEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            Connect();            
+        }
 
+        private void Connect()
+        {
             try
             {
-                if (!Socket.ConnectAsync(ConnectorEventArgs))
+                if (Status == SessionStatus.Starting || Status == SessionStatus.Started)
                 {
-                    OnClientConnected(ConnectorEventArgs);
+                    ConnectSignal.Reset();
+
+                    Socket = new Socket(ServerEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                    
+                    if (!Socket.ConnectAsync(ConnectorEventArgs))
+                        OnClientConnecting(this, ConnectorEventArgs);
+
+                    ConnectSignal.WaitOne();
                 }
             }
             catch (Exception ex)
             {
-                //
+                Queue.Enqueue(new SessionMessage(this, ex));
             }
         }
 
         private void OnClientConnecting(object sender, SocketAsyncEventArgs e)
         {
+            if (e.SocketError == SocketError.Success)
+            {
+                ClientEndPoint = (IPEndPoint)e.ConnectSocket.LocalEndPoint;
+                ClientAddress = ClientEndPoint?.ToString();
+            }
+            else
+            {
+                ClientEndPoint = null;
+                ClientAddress = null;
+            }
+
+            ConnectSignal.Set();
+
             OnClientConnected(e);
         }
 
-        public override void OnStopping()
+        protected override void OnHeartbeat(long count)
         {
-            base.OnStopping();
+            base.OnHeartbeat(count);
+
+            if (!IsConnected && OptionReconnectOnHeatbeat)
+                Connect();                
         }
 
         public override string ToString()
         {
-            return $"TCP Client {ClientAddress}";
+            if (ClientAddress == null)
+                return $"TCP Client";
+            else
+                return $"TCP Client ({ClientAddress})";
         }
     }
 }

@@ -21,6 +21,8 @@ namespace JVermeulen.Processing
         public long NumberOfValuesPending => PendingValuesCounter.Value;
         public long NumberOfValuesProcessed => ProcessedValuesCounter.Value;
 
+        public bool OptionWriteToConsole { get; set; }
+
         public SubscriptionQueue(IScheduler scheduler = null)
         {
             Scheduler = scheduler ?? new EventLoopScheduler();
@@ -69,6 +71,9 @@ namespace JVermeulen.Processing
         {
             PendingValuesCounter.Decrement();
             ProcessedValuesCounter.Increment();
+
+            if (OptionWriteToConsole)
+                Console.WriteLine($"{DateTime.Now:T} {value}");
         }
 
         private void OnError(Exception ex)

@@ -28,7 +28,7 @@ namespace JVermeulen.Processing
             Observable
                 .Interval(Interval)
                 .ObserveOn(Scheduler)
-                .Subscribe(OnHeartbeat, Cancellation.Token);
+                .Subscribe(OnHeartbeating, Cancellation.Token);
         }
 
         public override void OnStopping()
@@ -38,15 +38,15 @@ namespace JVermeulen.Processing
             Cancellation?.Cancel();
         }
 
-        private void OnHeartbeat(long count)
+        private void OnHeartbeating(long count)
         {
             var heartbeat = new Heartbeat(count);
 
             Queue.Enqueue(new SessionMessage(this, heartbeat));
 
-            OnHeartbeatReceived(count);
+            OnHeartbeat(count);
         }
 
-        public virtual void OnHeartbeatReceived(long count) { }
+        protected virtual void OnHeartbeat(long count) { }
     }
 }

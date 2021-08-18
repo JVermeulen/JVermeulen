@@ -31,7 +31,9 @@ namespace JVermeulen.TCP
 
         public SubscriptionQueue<SessionMessage> MessageQueue { get; private set; }
 
-        public TcpSession(Socket socket, bool isServer, ITcpEncoder<T> encoder) : base(TimeSpan.FromSeconds(5))
+        public bool OptionPollOnHeartbeat { get; set; } = true;
+
+        public TcpSession(Socket socket, bool isServer, ITcpEncoder<T> encoder) : base(TimeSpan.FromSeconds(60))
         {
             Socket = socket;
             IsServer = isServer;
@@ -55,13 +57,26 @@ namespace JVermeulen.TCP
             MessageQueue = new SubscriptionQueue<SessionMessage>();
         }
 
-        private void OnHeartbeat(long obj)
+        protected override void OnHeartbeat(long count)
         {
-            if (!PollClient())
+            base.OnHeartbeat(count);
+
+            if (OptionPollOnHeartbeat)
+                PollClient();
+        }
+
+        private void PollClient()
+        {
+            var isActive = TryPollClient();
+
+            var message = new TcpPoll(isActive);
+            Queue.Enqueue(new SessionMessage(this, message));
+
+            if (!isActive)
                 Restart();
         }
 
-        private bool PollClient()
+        public bool TryPollClient()
         {
             try
             {
