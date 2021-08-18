@@ -18,8 +18,8 @@ namespace JVermeulen.Processing
         private ValueCounter ProcessedValuesCounter { get; set; }
         private ValueCounter PendingValuesCounter { get; set; }
 
-        public long NumberOfValuesPending => (long)PendingValuesCounter.Value;
-        public long NumberOfValuesProcessed => (long)ProcessedValuesCounter.Value;
+        public long NumberOfValuesPending => PendingValuesCounter.Value;
+        public long NumberOfValuesProcessed => ProcessedValuesCounter.Value;
 
         public SubscriptionQueue(IScheduler scheduler = null)
         {
@@ -32,7 +32,17 @@ namespace JVermeulen.Processing
             Queue.Subscribe(OnDequeue);
         }
 
-        private static Action<T> ActionAndCatch(Action<T> action, Action<Exception> catchAction)
+        public IDisposable Subscribe(Action<T> onNext, Action<Exception> onError = null)
+        {
+            return Subscribe(Queue, onNext, onError ?? OnError);
+        }
+
+        public static IDisposable Subscribe(IObservable<T> queue, Action<T> onNext, Action<Exception> onError)
+        {
+            return queue.Subscribe(ActionAndCatch(onNext, onError ?? onError), onError);
+        }
+
+        public static Action<T> ActionAndCatch(Action<T> action, Action<Exception> catchAction)
         {
             return item =>
             {
@@ -45,11 +55,6 @@ namespace JVermeulen.Processing
                     catchAction(ex);
                 }
             };
-        }
-
-        public IDisposable Subscribe(Action<T> onNext, Action<Exception> onError = null)
-        {
-            return Queue.Subscribe(ActionAndCatch(onNext, onError ?? OnError), OnError);
         }
 
         public void Enqueue(T value)

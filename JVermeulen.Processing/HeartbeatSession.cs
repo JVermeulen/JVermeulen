@@ -9,38 +9,44 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.Processing
 {
-    public class HeartbeatSession : Session
+    public class HeartbeatSession : SubscriptionSession
     {
         public TimeSpan Interval { get; private set; }
-
-        private SubscriptionQueue<long> Queue { get; set; }
         private CancellationTokenSource Cancellation { get; set; }
 
-        public HeartbeatSession(TimeSpan interval, IScheduler scheduler = null) : base(scheduler ?? new EventLoopScheduler())
+        public HeartbeatSession(TimeSpan interval, IScheduler scheduler = null) : base(scheduler)
         {
             Interval = interval;
-
-            Queue = new SubscriptionQueue<long>(scheduler);
         }
 
         public override void OnStarting()
         {
+            base.OnStarting();
+
             Cancellation = new CancellationTokenSource();
 
             Observable
                 .Interval(Interval)
                 .ObserveOn(Scheduler)
-                .Subscribe(Queue.Enqueue, Cancellation.Token);
-        }
-
-        public IDisposable Subscribe(Action<long> onNext, Action<Exception> onError = null)
-        {
-            return Queue.Subscribe(onNext, onError);
+                .Subscribe(OnHeartbeat, Cancellation.Token);
         }
 
         public override void OnStopping()
         {
+            base.OnStopping();
+
             Cancellation?.Cancel();
         }
+
+        private void OnHeartbeat(long count)
+        {
+            var heartbeat = new Heartbeat(count);
+
+            Queue.Enqueue(new SessionMessage(this, heartbeat));
+
+            OnHeartbeatReceived(count);
+        }
+
+        public virtual void OnHeartbeatReceived(long count) { }
     }
 }

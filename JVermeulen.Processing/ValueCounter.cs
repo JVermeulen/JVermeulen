@@ -1,97 +1,59 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace JVermeulen.Processing
 {
-    public class ValueCounter
+    public class ValueCounter : Session
     {
         private readonly object SyncLock = new object();
+        
+        public long InitialValue { get; private set; }
+        public long Value { get; private set; }
+        public long Max { get; set; }
 
-        private Session Timer { get; set; }
-
-        public double InitialValue { get; private set; }
-        public double Value { get; private set; }
-        public double Max { get; set; }
-
-        private ValueCounter SubCounter { get; set; }
-
-        public ValueCounter(double initialValue = 0, bool createSubCounter = false)
+        public ValueCounter(long initialValue = 0)
         {
             InitialValue = initialValue;
-            Value = InitialValue;
-
-            if (createSubCounter)
-                SubCounter = new ValueCounter(0, false);
         }
 
-        public double Increment()
+        public override void OnStarting()
+        {
+            Value = InitialValue;
+        }
+
+        public long Increment()
         {
             return Add(1);
         }
 
-        public double Decrement()
+        public long Decrement()
         {
             return Add(-1);
         }
 
-        public double Add(double value)
+        public long Add(long value)
         {
             lock (SyncLock)
             {
                 Value += value;
 
-                SubCounter?.Add(value);
-
                 return Value;
             }
         }
 
-        public double Reset()
+        public long GetStatistics(bool reset, out long value, out TimeSpan duration, out double valuesPerSecond, out double percentage)
         {
             lock (SyncLock)
             {
-                Value = InitialValue;
-
-                SubCounter?.Reset();
-
-                Timer.Restart();
-
-                return Value;
-            }
-        }
-
-        public double GetValue(bool reset, out double valuePerSecond, out double percentage)
-        {
-            valuePerSecond = 0;
-            percentage = 0;
-
-            lock (SyncLock)
-            {
-                var value = Value;
-
-                valuePerSecond = Timer.Duration != default ? value / Timer.Duration.TotalSeconds : 0;
-                percentage = Max > 0 ? Value / Max : 0;
+                value = Value;
+                duration = Duration;
+                valuesPerSecond = duration != default ? value / duration.TotalSeconds : 0;
+                percentage = Max > 0 ? (double)Value / (double)Max : 0;
 
                 if (reset)
-                    Reset();
+                    Restart();
 
                 return value;
             }
-        }
-
-        public double GetSubValue(out double valuePerSecond)
-        {
-            valuePerSecond = 0;
-
-            return SubCounter?.GetValue(true, out valuePerSecond, out _) ?? 0;
-        }
-
-        public void Dispose()
-        {
-            Timer?.Dispose();
         }
     }
 }

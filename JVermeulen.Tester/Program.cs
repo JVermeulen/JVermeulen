@@ -1,7 +1,8 @@
 ﻿using JVermeulen.App;
 using JVermeulen.Processing;
+using JVermeulen.TCP;
+using JVermeulen.TCP.Encoders;
 using System;
-using System.Reactive.Concurrency;
 using System.Threading.Tasks;
 
 namespace JVermeulen.Tester
@@ -10,15 +11,21 @@ namespace JVermeulen.Tester
     {
         static void Main(string[] args)
         {
-            var networkAddresses = NetworkInfo.NetworkAddresses;
-
-            Console.WriteLine("NetworkInfo:");
-            foreach (var networkAddress in networkAddresses)
+            using (var server = new ExampleTcpServer(6000))
             {
-                Console.WriteLine($"- Address: {networkAddress.Value} ({networkAddress.Key})");
-            }
-            Console.WriteLine();
+                //using (var client = new TcpClient<string>(XmlTcpEncoder.UTF8Encoder, "127.0.0.1", 6000))
+                //{
+                //    client.Start();
 
+                //    Task.Delay(5000).Wait();
+                //}
+
+                Task.Delay(10000).Wait();
+            }
+        }
+
+        private static void TestAppInfo()
+        {
             Console.WriteLine("AppInfo:");
             Console.WriteLine($"- Name={AppInfo.Name}");
             Console.WriteLine($"- Title={AppInfo.Title}");
@@ -37,31 +44,32 @@ namespace JVermeulen.Tester
             Console.WriteLine($"- OSFriendlyName={AppInfo.OSFriendlyName}");
             Console.WriteLine($"- OSDescription={AppInfo.OSDescription}");
             Console.WriteLine();
+        }
 
-            //using (var heart = new HeartbeatGenerator(TimeSpan.FromSeconds(1)))
-            //{
-            //    heart.OnReceive.Subscribe((h) => Console.WriteLine(h.Id.ToString()));
-            //    heart.Start();
+        public static void TestNetworkInfo()
+        {
+            var networkAddresses = NetworkInfo.NetworkAddresses;
 
-            //    Task.Delay(10000).Wait();
-            //}
-
-            using (var processor = new ExampleProcessor())
+            Console.WriteLine("NetworkInfo:");
+            foreach (var networkAddress in networkAddresses)
             {
-                processor.Start();
-
-                Task.Delay(2000).Wait();
-
-                processor.Send(2000);
-                processor.Send(2000);
-                processor.Send(2000);
-                processor.Send(2000);
-                processor.Send(2000);
-
-                Task.Delay(5000).Wait();
+                Console.WriteLine($"- Address: {networkAddress.Value} ({networkAddress.Key})");
             }
+            Console.WriteLine();
+        }
 
-            Task.Delay(10000).Wait();
+        public static void OnExceptionOccured(Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(ex.Message);
+            Console.ResetColor();
+        }
+
+        public static void OnExceptionOccured2(Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Blue;
+            Console.WriteLine(ex.Message);
+            Console.ResetColor();
         }
     }
 }

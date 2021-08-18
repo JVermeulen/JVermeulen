@@ -1,43 +1,33 @@
 ﻿using System;
-using System.Reactive.Concurrency;
 
 namespace JVermeulen.Processing
 {
     public class Session : ISession
     {
-        public DateTime StartedAt { get; set; }
-        public DateTime StoppedAt { get; set; }
-        public TimeSpan Duration => StartedAt == default ? default : (StoppedAt == default ? DateTime.Now - StartedAt : StoppedAt - StartedAt);
+        public Guid Id { get; private set; }
 
         public SessionStatus Status { get; private set; }
-        public SubscriptionQueue<SessionStatus> StatusChangedQueue { get; private set; }
 
-        protected IScheduler Scheduler { get; set; }
+        public DateTime StartedAt { get; private set; }
+        public DateTime StoppedAt { get; private set; }
+        public TimeSpan Duration => StartedAt == default ? default : (StoppedAt == default ? DateTime.Now - StartedAt : StoppedAt - StartedAt);
 
-        public Session(IScheduler scheduler = null)
+        public Session()
         {
-            Scheduler = scheduler ?? new EventLoopScheduler();
-
-            StatusChangedQueue = new SubscriptionQueue<SessionStatus>(Scheduler);
-        }
-
-        public void SetStatus(SessionStatus status)
-        {
-            Status = status;
-            StatusChangedQueue.Enqueue(status);
+            Id = Guid.NewGuid();
         }
 
         public void Start()
         {
             if (Status == SessionStatus.Stopped)
             {
-                SetStatus(SessionStatus.Starting);
+                Status = SessionStatus.Starting;
                 OnStarting();
 
                 StartedAt = DateTime.Now;
                 StoppedAt = default;
 
-                SetStatus(SessionStatus.Started);
+                Status = SessionStatus.Started;
                 OnStarted();
             }
         }
@@ -46,12 +36,12 @@ namespace JVermeulen.Processing
         {
             if (Status == SessionStatus.Started)
             {
-                SetStatus(SessionStatus.Stopping);
+                Status = SessionStatus.Stopping;
                 OnStopping();
 
                 StoppedAt = DateTime.Now;
 
-                SetStatus(SessionStatus.Stopped);
+                Status = SessionStatus.Stopped;
                 OnStopped();
             }
         }
