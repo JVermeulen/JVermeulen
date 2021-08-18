@@ -13,14 +13,14 @@ namespace JVermeulen.Tester
         {
             using (var server = new ExampleTcpServer(6000))
             {
-                //using (var client = new TcpClient<string>(XmlTcpEncoder.UTF8Encoder, "127.0.0.1", 6000))
-                //{
-                //    client.Start();
+                using (var client = new TcpClient<string>(XmlTcpEncoder.UTF8Encoder, "127.0.0.1", 6000))
+                {
+                    client.Start();
 
-                //    Task.Delay(5000).Wait();
-                //}
+                    Task.Delay(5000).Wait();
+                }
 
-                Task.Delay(15000).Wait();
+                Task.Delay(60000).Wait();
                 server.Server.Stop();
 
                 var report = server.Server.CreateSessionReport();
