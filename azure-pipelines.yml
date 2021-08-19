@@ -27,6 +27,6 @@ steps:
   displayName: 'dotnet test'
   inputs:
     command: 'test'
-    projects: 'JVermeulen.App.Tests/JVermeulen.App.Tests.csproj'
+    projects: '**\*Tests\*.csproj'
     arguments: '--configuration $(buildConfiguration)'
     
