@@ -11,24 +11,27 @@ namespace JVermeulen.Tester
     {
         static void Main(string[] args)
         {
-            using (var server = new TcpServer<string>(XmlTcpEncoder.UTF8Encoder, 6000))
-            {
-                server.Queue.OptionWriteToConsole = true;
-                server.MessageQueue.OptionWriteToConsole = true;
-                server.OptionBroadcastMessages = true;
-                server.OptionEchoMessages = true;
+            //using (var server = new TcpServer<string>(XmlTcpEncoder.UTF8Encoder, 6000))
+            //{
+            //    server.Queue.OptionWriteToConsole = true;
+            //    server.MessageQueue.OptionWriteToConsole = true;
+            //    server.OptionBroadcastMessages = true;
+            //    server.OptionEchoMessages = true;
 
-                server.Start();
-                //using (var client = new TcpClient<string>(XmlTcpEncoder.UTF8Encoder, "127.0.0.1", 6000))
-                //{
-                //    client.Queue.OptionWriteToConsole = true;
-                //    //client.MessageQueue.OptionWriteToConsole = true;
+            //    server.Start();
+            //    //using (var client = new TcpClient<string>(XmlTcpEncoder.UTF8Encoder, "127.0.0.1", 6000))
+            //    //{
+            //    //    client.Queue.OptionWriteToConsole = true;
+            //    //    //client.MessageQueue.OptionWriteToConsole = true;
 
-                //    Task.Delay(15000).Wait();
-                //}
+            //    //    Task.Delay(15000).Wait();
+            //    //}
 
-                Task.Delay(30000).Wait();
-            }
+            //    Task.Delay(30000).Wait();
+            //}
+
+            TestAppInfo();
+            TestNetworkInfo();
         }
 
         private static void TestAppInfo()
@@ -55,12 +58,21 @@ namespace JVermeulen.Tester
 
         public static void TestNetworkInfo()
         {
-            var networkAddresses = NetworkInfo.NetworkAddresses;
 
             Console.WriteLine("NetworkInfo:");
+            Console.WriteLine($"- Primary (v4): {NetworkInfo.PrimaryHostname} ({NetworkInfo.PrimaryIPAddress})");
+            Console.WriteLine($"- Primary (v6): {NetworkInfo.PrimaryHostname} ({NetworkInfo.PrimaryIPAddressV6})");
+            
+            var networkAddresses = NetworkInfo.NetworkAddresses;
             foreach (var networkAddress in networkAddresses)
             {
-                Console.WriteLine($"- Address: {networkAddress.Value} ({networkAddress.Key})");
+                Console.WriteLine($"- Address (v4): {networkAddress.Value} ({networkAddress.Key})");
+            }
+
+            var networkAddressesV6 = NetworkInfo.NetworkAddressesV6;
+            foreach (var networkAddress in networkAddressesV6)
+            {
+                Console.WriteLine($"- Address (v6): {networkAddress.Value} ({networkAddress.Key})");
             }
             Console.WriteLine();
         }

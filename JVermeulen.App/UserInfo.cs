@@ -1,17 +1,22 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Versioning;
 using System.Security.Principal;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace JVermeulen.App
 {
+    /// <summary>
+    /// Static class for user info.
+    /// </summary>
     public static class UserInfo
     {
-        public static string UserName => Environment.UserName;
+        /// <summary>
+        /// User name.
+        /// </summary>
+        public static string Name => Environment.UserName;
 
+        /// <summary>
+        /// User has administrator rights (Windows only).
+        /// </summary>
         [SupportedOSPlatform("windows")]
         public static bool IsAdmin => GetIsAdmin();
 

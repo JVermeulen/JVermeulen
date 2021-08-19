@@ -1,0 +1,133 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>JVermeulen.App</name>
+    </assembly>
+    <members>
+        <member name="T:JVermeulen.App.AppInfo">
+            <summary>
+            Static class for application info.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.AppInfo.Name">
+            <summary>
+            App name from the app domain.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.AppInfo.Title">
+            <summary>
+            App title from the assembly.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.AppInfo.Version">
+            <summary>
+            App version from the assembly.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.AppInfo.Architecture">
+            <summary>
+            App architecture (x86 or x64).
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.AppInfo.Description">
+            <summary>
+            App description (name, version and architecture).
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.AppInfo.Guid">
+            <summary>
+            App guid from the assembly.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.AppInfo.Is64bit">
+            <summary>
+            App runs as x64 architecture.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.AppInfo.FileName">
+            <summary>
+            App exe filename from the process.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.AppInfo.DirectoryName">
+            <summary>
+            App exe directory from the app domain.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.AppInfo.HasUI">
+            <summary>
+            App has a UI (Desktop or Console).
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.AppInfo.HasWindow">
+            <summary>
+            App has a windows (Desktop).
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.AppInfo.Type">
+            <summary>
+            App type (Desktop, Console or Service).
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.AppInfo.OSFriendlyName">
+            <summary>
+            OS name (e.g. Windows or Linux).
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.AppInfo.OSDescription">
+            <summary>
+            OS description (Type, version and architecture).
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.AppInfo.Culture">
+            <summary>
+            App current culture.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.AppInfo.IsDebug">
+            <summary>
+            App runs in DEBUG mode.
+            </summary>
+        </member>
+        <member name="T:JVermeulen.App.NetworkInfo">
+            <summary>
+            Static class for network info.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.NetworkInfo.PrimaryHostname">
+            <summary>
+            Machine name.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.NetworkInfo.PrimaryIPAddress">
+            <summary>
+            IP address (v4) from MachineName.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.NetworkInfo.PrimaryIPAddressV6">
+            <summary>
+            IP address (v6) from MachineName.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.NetworkInfo.NetworkAddresses">
+            <summary>
+            Available network addresses.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.NetworkInfo.NetworkAddressesV6">
+            <summary>
+            Available network addresses.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.App.NetworkInfo.TryGetDnsInfo(System.String,System.Net.Sockets.AddressFamily,System.String@,System.Net.IPAddress[]@)">
+            <summary>
+            Get Hostname and IPAddress from the given hostname or IPAddress.
+            </summary>
+            <param name="hostnameOrIpAddress">Input (hostname or ip address).</param>
+            <param name="family">IPAddress version (e.g. v4 or v6).</param>
+            <param name="hostname">Output hostname.</param>
+            <param name="ipAddresses">Output IPAddress(es).</param>
+            <returns>No errors occured.</returns>
+        </member>
+    </members>
+</doc>
