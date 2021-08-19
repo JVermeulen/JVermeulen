@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.TCP
 {
-    public abstract class BaseTcpClient<T> : HeartbeatSession
+    public abstract class BaseTcpSocket<T> : HeartbeatSession
     {
         public abstract bool IsServer { get; }
         protected Socket Socket { get; set; }
@@ -20,12 +20,12 @@ namespace JVermeulen.TCP
         public List<TcpSession<T>> ConnectedSessions => Sessions.Where(s => s.Socket.Connected).ToList();
 
         public SubscriptionQueue<SessionMessage> MessageQueue { get; private set; }
-        public TcpReport Statistics { get; private set; }
+        private TcpStatistics HeartbeatStatistics { get; set; }
 
-        public bool OptionSendReportOnHeartbeat { get; set; } = false;
+        public bool OptionSendStatisticsOnHeartbeat { get; set; } = false;
         public bool OptionCleanupSessionsOnHeartbeat { get; set; } = false;
 
-        public BaseTcpClient(ITcpEncoder<T> encoder, IPEndPoint serverEndpoint, TimeSpan interval) : base(interval)
+        public BaseTcpSocket(ITcpEncoder<T> encoder, IPEndPoint serverEndpoint, TimeSpan interval) : base(interval)
         {
             ServerEndPoint = serverEndpoint;
             ServerAddress = ServerEndPoint.ToString();
@@ -34,7 +34,7 @@ namespace JVermeulen.TCP
             Sessions = new List<TcpSession<T>>();
 
             MessageQueue = new SubscriptionQueue<SessionMessage>();
-            Statistics = new TcpReport();
+            HeartbeatStatistics = new TcpStatistics();
         }
 
         public override void OnStopping()
@@ -82,21 +82,21 @@ namespace JVermeulen.TCP
             if (message.Value is SessionStatus sessionStatus)
             {
                 if (sessionStatus == SessionStatus.Started)
-                    Statistics.NumberOfConnectedClients++;
+                    HeartbeatStatistics.NumberOfConnectedClients++;
                 else if (sessionStatus == SessionStatus.Stopped)
-                    Statistics.NumberOfDisconnectedClients++;
+                    HeartbeatStatistics.NumberOfDisconnectedClients++;
             }
             else if (message.Value is TcpMessage<T> tcpMessage)
             {
                 if (tcpMessage.IsIncoming)
                 {
-                    Statistics.NumberOfBytesReceived += tcpMessage.ContentInBytes;
-                    Statistics.NumberOfMessagesReceived++;
+                    HeartbeatStatistics.NumberOfBytesReceived += tcpMessage.ContentInBytes;
+                    HeartbeatStatistics.NumberOfMessagesReceived++;
                 }
                 else
                 {
-                    Statistics.NumberOfBytesSent += tcpMessage.ContentInBytes;
-                    Statistics.NumberOfMessagesSent++;
+                    HeartbeatStatistics.NumberOfBytesSent += tcpMessage.ContentInBytes;
+                    HeartbeatStatistics.NumberOfMessagesSent++;
                 }
             }
         }
@@ -110,8 +110,8 @@ namespace JVermeulen.TCP
             if (OptionCleanupSessionsOnHeartbeat)
                 CleanupSessions(yesterday);
 
-            if (OptionSendReportOnHeartbeat)
-                CreateHeartbeatReport();
+            if (OptionSendStatisticsOnHeartbeat)
+                CreateHeartbeatStatistics();
         }
 
         public void CleanupSessions(DateTime beforeStoppedAt)
@@ -126,18 +126,18 @@ namespace JVermeulen.TCP
             }
         }
 
-        private void CreateHeartbeatReport()
+        private void CreateHeartbeatStatistics()
         {
-            Statistics.StoppedAt = DateTime.Now;
+            HeartbeatStatistics.StoppedAt = DateTime.Now;
 
-                Queue.Enqueue(new SessionMessage(this, Statistics));
+                Queue.Enqueue(new SessionMessage(this, HeartbeatStatistics));
 
-            Statistics = new TcpReport();
+            HeartbeatStatistics = new TcpStatistics();
         }
 
-        public TcpReport CreateSessionReport()
+        public TcpStatistics CreateSessionStatistics()
         {
-            return new TcpReport
+            return new TcpStatistics
             {
                 StartedAt = StartedAt,
                 StoppedAt = StoppedAt != default ? StoppedAt : DateTime.Now,

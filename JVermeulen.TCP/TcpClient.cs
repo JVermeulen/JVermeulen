@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.TCP
 {
-    public class TcpClient<T> : BaseTcpClient<T>
+    public class TcpClient<T> : BaseTcpSocket<T>
     {
         public override bool IsServer => false;
         public bool IsConnected => Socket.Connected;

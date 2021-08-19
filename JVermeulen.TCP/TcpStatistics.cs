@@ -2,7 +2,7 @@
 
 namespace JVermeulen.TCP
 {
-    public class TcpReport
+    public class TcpStatistics
     {
         public DateTime StartedAt { get; set; }
         public DateTime StoppedAt { get; set; }
@@ -22,7 +22,7 @@ namespace JVermeulen.TCP
         public double AverageMessagesReceived => Duration != default ? NumberOfMessagesReceived / Duration.TotalSeconds : 0;
         public double AverageMessagesSent => Duration != default ? NumberOfMessagesSent / Duration.TotalSeconds : 0;
 
-        public TcpReport()
+        public TcpStatistics()
         {
             StartedAt = DateTime.Now;
         }
@@ -31,7 +31,7 @@ namespace JVermeulen.TCP
         {
             var lines = new string[]
             {
-                "TCP Report:",
+                "TCP Statistics:",
                 $"- Connected clients: {NumberOfConnectedClients} ({AverageConnectedClients} /s)",
                 $"- Disonnected clients: {NumberOfDisconnectedClients} ({AverageDisconnectedClients} /s)",
                 $"- Bytes received: {NumberOfBytesReceived} ({AverageBytesReceived} B/s)",
