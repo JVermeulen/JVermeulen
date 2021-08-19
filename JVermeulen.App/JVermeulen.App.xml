@@ -129,5 +129,20 @@
             <param name="ipAddresses">Output IPAddress(es).</param>
             <returns>No errors occured.</returns>
         </member>
+        <member name="T:JVermeulen.App.UserInfo">
+            <summary>
+            Static class for user info.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.UserInfo.Name">
+            <summary>
+            User name.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.UserInfo.IsAdmin">
+            <summary>
+            User has administrator rights (Windows only).
+            </summary>
+        </member>
     </members>
 </doc>

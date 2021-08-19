@@ -9,7 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JVermeulen.Tester", "JVerme
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JVermeulen.Processing", "JVermeulen.Processing\JVermeulen.Processing.csproj", "{543440DE-EACC-415F-A101-FB3E4D92F074}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JVermeulen.TCP", "JVermeulen.TCP\JVermeulen.TCP.csproj", "{DC94F24D-1980-4C2B-B886-E15DB3F50EA9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JVermeulen.TCP", "JVermeulen.TCP\JVermeulen.TCP.csproj", "{DC94F24D-1980-4C2B-B886-E15DB3F50EA9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JVermeulen.App.Tests", "JVermeulen.App.Tests\JVermeulen.App.Tests.csproj", "{29DD8834-AF66-4D16-8A2D-A3E561C8D104}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{DC94F24D-1980-4C2B-B886-E15DB3F50EA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DC94F24D-1980-4C2B-B886-E15DB3F50EA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DC94F24D-1980-4C2B-B886-E15DB3F50EA9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{29DD8834-AF66-4D16-8A2D-A3E561C8D104}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{29DD8834-AF66-4D16-8A2D-A3E561C8D104}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{29DD8834-AF66-4D16-8A2D-A3E561C8D104}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{29DD8834-AF66-4D16-8A2D-A3E561C8D104}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
