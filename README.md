@@ -1,0 +1,1 @@
+[![Build Status](https://joostvermeulen.visualstudio.com/JVermeulen/_apis/build/status/JVermeulen.JVermeulen?branchName=azure-pipelines)](https://joostvermeulen.visualstudio.com/JVermeulen/_build/latest?definitionId=1&branchName=azure-pipelines)
