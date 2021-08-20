@@ -22,6 +22,7 @@ steps:
   displayName: 'dotnet build'
   inputs:
     command: 'build'
+    arguments: '--configuration $(buildConfiguration)'
 
 - task: DotNetCoreCLI@2
   displayName: 'dotnet test'
@@ -42,6 +43,6 @@ steps:
   displayName: 'dotnet publish'
   inputs:
     command: 'push'
-    packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
+    packagesToPush: '$(Agent.BuildDirectory)/*.nupkg'
     nuGetFeedType: 'internal'
     publishVstsFeed: 'NuGet'
