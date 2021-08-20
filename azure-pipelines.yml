@@ -29,4 +29,19 @@ steps:
     command: 'test'
     projects: '**/*Tests/*.csproj'
     arguments: '--configuration $(buildConfiguration)'
-    
+
+# - task: DotNetCoreCLI@2
+#   displayName: 'dotnet pack'
+#   inputs:
+#     command: 'pack'
+#     packagesToPack: './JVermeulen.App/JVermeulen.App.csproj'
+#     nobuild: true
+#     verbosityPack: 'Normal'
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet publish'
+  inputs:
+    command: 'push'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
+    nuGetFeedType: 'internal'
+    publishVstsFeed: 'NuGet'
