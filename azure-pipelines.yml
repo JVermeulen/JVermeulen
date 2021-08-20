@@ -39,10 +39,21 @@ steps:
 #     nobuild: true
 #     verbosityPack: 'Normal'
 
+# - task: DotNetCoreCLI@2
+#   displayName: 'dotnet publish'
+#   inputs:
+#     command: 'push'
+#     packagesToPush: '$(Agent.BuildDirectory)/**/*.nupkg'
+#     nuGetFeedType: 'internal'
+#     publishVstsFeed: 'NuGet'
+
+
 - task: DotNetCoreCLI@2
   displayName: 'dotnet publish'
   inputs:
-    command: 'push'
-    packagesToPush: '$(Agent.BuildDirectory)/**/*.nupkg'
-    nuGetFeedType: 'internal'
-    publishVstsFeed: 'NuGet'
+    command: 'custom'
+    custom: nuget
+    arguments: >
+      push $(Agent.BuildDirectory)/**/*.nupkg
+      -s https://api.nuget.org/v3/index.json
+      -k oy2mgvxv2nkv4q3di34q2t6myvmc2equdctxjbxq6mxwvy
