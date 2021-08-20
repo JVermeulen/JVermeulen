@@ -10,11 +10,5 @@ namespace JVermeulen.App.Tests
         {
             UserInfo.Name.AssertNotDefault("UserInfo.Name");
         }
-
-        [Fact]
-        public void IsWindowsAdminNoException()
-        {
-            var value = UserInfo.IsWindowsAdmin;
-        }
     }
 }

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Runtime.Versioning;
-using System.Security.Principal;
 
 namespace JVermeulen.App
 {
@@ -14,21 +12,21 @@ namespace JVermeulen.App
         /// </summary>
         public static string Name => Environment.UserName;
 
-        /// <summary>
-        /// User has administrator rights (Windows only).
-        /// </summary>
-        public static bool IsWindowsAdmin => GetIsWindowsAdmin();
+        ///// <summary>
+        ///// User has administrator rights (Windows only).
+        ///// </summary>
+        //public static bool IsWindowsAdmin => GetIsWindowsAdmin();
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "Returns false when not on Windows.")]
-        private static bool GetIsWindowsAdmin()
-        {
-            if (!AppInfo.OSIsWindows)
-                return false;
+        //[System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "Returns false when not on Windows.")]
+        //private static bool GetIsWindowsAdmin()
+        //{
+        //    if (!AppInfo.OSIsWindows)
+        //        return false;
 
-            using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
-            {
-                return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
-            }
-        }
+        //    using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+        //    {
+        //        return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
+        //    }
+        //}
     }
 }

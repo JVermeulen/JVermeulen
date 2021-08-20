@@ -9,14 +9,13 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/JVermeulen/JVermeulen</PackageProjectUrl>
     <Description>Contains static classes for commonly requested information, grouped by domain (app, user and network).</Description>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
+    <FileVersion>1.0.1.0</FileVersion>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DocumentationFile>C:\Source\GitHub\JVermeulen\JVermeulen\JVermeulen.App\JVermeulen.App.xml</DocumentationFile>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Security.Principal.Windows" Version="5.0.0" />
-  </ItemGroup>
 
 </Project>
