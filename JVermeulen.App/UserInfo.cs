@@ -17,11 +17,10 @@ namespace JVermeulen.App
         /// <summary>
         /// User has administrator rights (Windows only).
         /// </summary>
-        [SupportedOSPlatform("windows")]
-        public static bool IsAdmin => GetIsAdmin();
+        public static bool IsWindowsAdmin => GetIsWindowsAdmin();
 
-        [SupportedOSPlatform("windows")]
-        private static bool GetIsAdmin()
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "Returns false when not on Windows.")]
+        private static bool GetIsWindowsAdmin()
         {
             if (!AppInfo.OSIsWindows)
                 return false;

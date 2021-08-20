@@ -12,9 +12,9 @@ namespace JVermeulen.App.Tests
         }
 
         [Fact]
-        public void IsAdminNoException()
+        public void IsWindowsAdminNoException()
         {
-            var value = UserInfo.IsAdmin;
+            var value = UserInfo.IsWindowsAdmin;
         }
     }
 }
