@@ -3,6 +3,12 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Joost Vermeulen</Authors>
+    <Company>Joost Vermeulen</Company>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/JVermeulen/JVermeulen</PackageProjectUrl>
+    <Description>Contains static classes for commonly requested information, grouped by domain (app, user and network).</Description>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

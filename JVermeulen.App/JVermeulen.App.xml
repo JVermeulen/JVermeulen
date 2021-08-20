@@ -79,6 +79,11 @@
             OS description (Type, version and architecture).
             </summary>
         </member>
+        <member name="P:JVermeulen.App.AppInfo.OSIsWindows">
+            <summary>
+            OS is Windows.
+            </summary>
+        </member>
         <member name="P:JVermeulen.App.AppInfo.Culture">
             <summary>
             App current culture.

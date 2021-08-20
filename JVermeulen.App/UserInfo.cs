@@ -23,6 +23,9 @@ namespace JVermeulen.App
         [SupportedOSPlatform("windows")]
         private static bool GetIsAdmin()
         {
+            if (!AppInfo.OSIsWindows)
+                return false;
+
             using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
             {
                 return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);

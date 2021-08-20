@@ -83,6 +83,11 @@ namespace JVermeulen.App
         public static string OSDescription => $"{RuntimeInformation.OSDescription} ({RuntimeInformation.OSArchitecture})";
 
         /// <summary>
+        /// OS is Windows.
+        /// </summary>
+        public static bool OSIsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+        /// <summary>
         /// App current culture.
         /// </summary>
         public static string Culture => CultureInfo.CurrentCulture.DisplayName;
