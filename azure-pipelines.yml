@@ -57,3 +57,4 @@ steps:
       push $(Agent.BuildDirectory)/**/*.nupkg
       -s https://api.nuget.org/v3/index.json
       -k oy2mgvxv2nkv4q3di34q2t6myvmc2equdctxjbxq6mxwvy
+      --skip-duplicate
