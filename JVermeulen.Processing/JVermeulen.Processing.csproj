@@ -2,6 +2,17 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/JVermeulen/JVermeulen</PackageProjectUrl>
+    <Description>Contains session based classes using the Reactive pattern with subscription queues.</Description>
+    <Company>Joost Vermeulen</Company>
+    <Authors>Joost Vermeulen</Authors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>C:\Source\GitHub\JVermeulen\JVermeulen\JVermeulen.Processing\JVermeulen.Processing.xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

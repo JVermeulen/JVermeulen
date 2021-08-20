@@ -118,7 +118,7 @@ namespace JVermeulen.TCP
             MessageQueue.Enqueue(new(this, message));
         }
 
-        public override void OnStarting()
+        protected override void OnStarting()
         {
             base.OnStarting();
 
@@ -127,7 +127,7 @@ namespace JVermeulen.TCP
             Heartbeat?.Start();
         }
 
-        public override void OnStopping()
+        protected override void OnStopping()
         {
             base.OnStopping();
 

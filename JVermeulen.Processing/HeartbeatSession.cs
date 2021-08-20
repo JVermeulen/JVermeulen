@@ -1,25 +1,36 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace JVermeulen.Processing
 {
+    /// <summary>
+    /// A session that generates heartbeats with the given interval, on the given scheduler.
+    /// </summary>
     public class HeartbeatSession : SubscriptionSession
     {
+        /// <summary>
+        /// The interval between heartbeats.
+        /// </summary>
         public TimeSpan Interval { get; private set; }
+
         private CancellationTokenSource Cancellation { get; set; }
 
+        /// <summary>
+        /// The constructor of this class.
+        /// </summary>
+        /// <param name="interval">The interval between heartbeats.</param>
+        /// <param name="scheduler">The scheduler to process the heartbeats.</param>
         public HeartbeatSession(TimeSpan interval, IScheduler scheduler = null) : base(scheduler)
         {
             Interval = interval;
         }
 
-        public override void OnStarting()
+        /// <summary>
+        /// Start generating heartbeats.
+        /// </summary>
+        protected override void OnStarting()
         {
             base.OnStarting();
 
@@ -31,7 +42,10 @@ namespace JVermeulen.Processing
                 .Subscribe(OnHeartbeating, Cancellation.Token);
         }
 
-        public override void OnStopping()
+        /// <summary>
+        /// Stop generating heartbeats.
+        /// </summary>
+        protected override void OnStopping()
         {
             base.OnStopping();
 
@@ -47,6 +61,10 @@ namespace JVermeulen.Processing
             OnHeartbeat(count);
         }
 
+        /// <summary>
+        /// A heartbeat occured.
+        /// </summary>
+        /// <param name="count">The incremented number of this heartbeat, starting with 0.</param>
         protected virtual void OnHeartbeat(long count) { }
     }
 }

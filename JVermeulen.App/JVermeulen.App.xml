@@ -144,10 +144,5 @@
             User name.
             </summary>
         </member>
-        <member name="P:JVermeulen.App.UserInfo.IsAdmin">
-            <summary>
-            User has administrator rights (Windows only).
-            </summary>
-        </member>
     </members>
 </doc>

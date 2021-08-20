@@ -37,7 +37,7 @@ namespace JVermeulen.TCP
             HeartbeatStatistics = new TcpStatistics();
         }
 
-        public override void OnStopping()
+        protected override void OnStopping()
         {
             base.OnStopping();
 

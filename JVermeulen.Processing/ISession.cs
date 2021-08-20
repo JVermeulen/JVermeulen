@@ -2,15 +2,24 @@
 
 namespace JVermeulen.Processing
 {
+    /// <summary>
+    /// An interface for the session pattern.
+    /// </summary>
     public interface ISession : IDisposable
     {
+        /// <summary>
+        /// Start the session.
+        /// </summary>
         void Start();
-        void Stop();
-        void Restart();
 
-        void OnStarting();
-        void OnStarted();
-        void OnStopping();
-        void OnStopped();
+        /// <summary>
+        /// Stop the session.
+        /// </summary>
+        void Stop();
+
+        /// <summary>
+        /// Stop and start the session.
+        /// </summary>
+        void Restart();
     }
 }

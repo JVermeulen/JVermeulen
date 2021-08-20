@@ -27,7 +27,7 @@ namespace JVermeulen.TCP
             //
         }
 
-        public override void OnStarting()
+        protected override void OnStarting()
         {
             base.OnStarting();
 
@@ -42,7 +42,7 @@ namespace JVermeulen.TCP
             Accept(AcceptorEventArgs);
         }
 
-        public override void OnStopping()
+        protected override void OnStopping()
         {
             base.OnStopping();
 
