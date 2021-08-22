@@ -4,6 +4,87 @@
         <name>JVermeulen.Processing</name>
     </assembly>
     <members>
+        <member name="T:JVermeulen.Processing.Actor">
+            <summary>
+            Concurrent processing of messages using the Actor model.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.Actor.Inbox">
+            <summary>
+            The MessageBox for incoming messages.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.Actor.Outbox">
+            <summary>
+            The MessageBox for outgoing messages.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.Actor.OptionSendHeartbeatToOutbox">
+            <summary>
+            When true, generated heartbeats are send to the Outbox. Default is false.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.Actor.OptionSendStatusChangedToOutbox">
+            <summary>
+            When true, status changes are send to the Outbox. Default is true.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.Actor.Heart">
+            <summary>
+            Internal heartbeat generator.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.Actor.HeartbeatInterval">
+            <summary>
+            The interval between heartbeats. Requires (re)start.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.Actor.#ctor(System.TimeSpan,System.Reactive.Concurrency.IScheduler)">
+            <summary>
+            The constructor of this class.
+            </summary>
+            <param name="heartbeatInterval">The time between heartbeats. When default, no heartbeats will be generated.</param>
+            <param name="scheduler">The scheduler of the Outbox. When null, a new EventLoopScheduler is used.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.Actor.OnReceived(JVermeulen.Processing.SessionMessage)">
+            <summary>
+            Process messages from the Inbox.
+            </summary>
+            <param name="message">The message to process.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.Actor.Subscribe(System.Action{JVermeulen.Processing.SessionMessage},System.Action{System.Exception})">
+            <summary>
+            Subscribe to the Outbox.
+            </summary>
+            <param name="onNext">What to do with messages received from Outbox.</param>
+            <param name="onError">What to do with errors occured in the onNext action.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.Actor.OnStarting">
+            <summary>
+            Sends the new status to the Outbox.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.Actor.OnStarted">
+            <summary>
+            Sends the new status to the Outbox.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.Actor.OnStopping">
+            <summary>
+            Sends the new status to the Outbox.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.Actor.OnStopped">
+            <summary>
+            Sends the new status to the Outbox.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.Actor.OnHeartbeat(JVermeulen.Processing.Heartbeat)">
+            <summary>
+            A heartbeat has been generated.
+            </summary>
+            <param name="heartbeat">The heartbeat message.</param>
+        </member>
         <member name="T:JVermeulen.Processing.Heartbeat">
             <summary>
             Represents a heartbeat.
@@ -25,38 +106,43 @@
             A String that represents the current object.
             </summary>
         </member>
-        <member name="T:JVermeulen.Processing.HeartbeatSession">
+        <member name="T:JVermeulen.Processing.HeartbeatBox">
             <summary>
-            A session that generates heartbeats with the given interval, on the given scheduler.
+            Generates heartbeat at the given interval.
             </summary>
         </member>
-        <member name="P:JVermeulen.Processing.HeartbeatSession.Interval">
+        <member name="P:JVermeulen.Processing.HeartbeatBox.IsStarted">
             <summary>
-            The interval between heartbeats.
+            Returs true when started.
             </summary>
         </member>
-        <member name="M:JVermeulen.Processing.HeartbeatSession.#ctor(System.TimeSpan,System.Reactive.Concurrency.IScheduler)">
+        <member name="P:JVermeulen.Processing.HeartbeatBox.Interval">
+            <summary>
+            The interval between heartbeats. When default, no heartbeats will be generated. Requires (re)start after change.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.HeartbeatBox.Cancellation">
+            <summary>
+            Internal cancel.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.HeartbeatBox.#ctor(System.Reactive.Concurrency.IScheduler,System.TimeSpan)">
             <summary>
             The constructor of this class.
             </summary>
-            <param name="interval">The interval between heartbeats.</param>
-            <param name="scheduler">The scheduler to process the heartbeats.</param>
+            <param name="scheduler">The Scheduler to use.</param>
+            <param name="interval">The interval between heartbeats. When default, no heartbeats will be generated.</param>
         </member>
-        <member name="M:JVermeulen.Processing.HeartbeatSession.OnStarting">
+        <member name="M:JVermeulen.Processing.HeartbeatBox.Start(System.TimeSpan)">
             <summary>
             Start generating heartbeats.
             </summary>
+            <param name="interval"></param>
         </member>
-        <member name="M:JVermeulen.Processing.HeartbeatSession.OnStopping">
+        <member name="M:JVermeulen.Processing.HeartbeatBox.Stop">
             <summary>
             Stop generating heartbeats.
             </summary>
-        </member>
-        <member name="M:JVermeulen.Processing.HeartbeatSession.OnHeartbeat(System.Int64)">
-            <summary>
-            A heartbeat occured.
-            </summary>
-            <param name="count">The incremented number of this heartbeat, starting with 0.</param>
         </member>
         <member name="T:JVermeulen.Processing.ISession">
             <summary>
@@ -76,6 +162,114 @@
         <member name="M:JVermeulen.Processing.ISession.Restart">
             <summary>
             Stop and start the session.
+            </summary>
+        </member>
+        <member name="T:JVermeulen.Processing.MessageBox`1">
+            <summary>
+            A queue of messages you can subscribe to. Message are handled one-by-one.
+            </summary>
+            <typeparam name="T">The message type.</typeparam>
+        </member>
+        <member name="P:JVermeulen.Processing.MessageBox`1.Scheduler">
+            <summary>
+            The Scheduler that handles messages.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.MessageBox`1.Messages">
+            <summary>
+            The internal message used for the Queue.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.MessageBox`1.Observer">
+            <summary>
+            The internal queue to subscribe to.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.MessageBox`1.ProcessedMessageCounter">
+            <summary>
+            Counts the processed messages from the queue.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.MessageBox`1.PendingMessageCounter">
+            <summary>
+            Counts the pending messages in the Queue.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.MessageBox`1.NumberOfMessagesPending">
+            <summary>
+            The number of processed messages from the queue.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.MessageBox`1.NumberOfMessagesProcessed">
+            <summary>
+            The number of pending messages in the Queue.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.MessageBox`1.OptionWriteToConsole">
+            <summary>
+            When true, processed messages are send to the Console. Default is false.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.MessageBox`1.#ctor(System.Reactive.Concurrency.IScheduler)">
+            <summary>
+            The constructor of this class.
+            </summary>
+            <param name="scheduler">The Scheduler that handles messages.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.MessageBox`1.Where(System.Func{`0,System.Boolean},System.Action{`0},System.Action{System.Exception})">
+            <summary>
+            Filters the elements of an observable sequence based on a predicate.
+            </summary>
+            <param name="where">A function to test each source element for a condition.</param>
+            <param name="onNext">What to do with messages received from Queue.</param>
+            <param name="onError">What to do with errors occured in the onNext action.</param>
+            <returns></returns>
+        </member>
+        <member name="M:JVermeulen.Processing.MessageBox`1.Subscribe(System.Action{`0},System.Action{System.Exception})">
+            <summary>
+            Subscribe to the Queue.
+            </summary>
+            <param name="onNext">What to do with messages received from Queue.</param>
+            <param name="onError">What to do with errors occured in the onNext action.</param>
+            <returns></returns>
+        </member>
+        <member name="M:JVermeulen.Processing.MessageBox`1.Subscribe(System.IObservable{`0},System.Action{`0},System.Action{System.Exception})">
+            <summary>
+            Subscribe to the given Queue.
+            </summary>
+            <param name="observer">A queue of messages you can subscribe to.</param>
+            <param name="onNext">What to do with messages received from Queue.</param>
+            <param name="onError">What to do with errors occured in the onNext action.</param>
+            <returns></returns>
+        </member>
+        <member name="M:JVermeulen.Processing.MessageBox`1.ActionAndCatch(System.Action{`0},System.Action{System.Exception})">
+            <summary>
+            Cathes exceptions occured in the action.
+            </summary>
+            <param name="action">The action to invoke.</param>
+            <param name="catchAction">What to do with errors occured in the action.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.MessageBox`1.Add(`0)">
+            <summary>
+            Sends the given message to the Queue and to the subscribers.
+            </summary>
+            <param name="message">The message to send.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.MessageBox`1.OnReceive(`0)">
+            <summary>
+            Internal subscription to the queue.
+            </summary>
+            <param name="message">The received message.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.MessageBox`1.OnError(System.Exception)">
+            <summary>
+            What to do with errors occured in the action.
+            </summary>
+            <param name="ex">The occured exception.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.MessageBox`1.Dispose">
+            <summary>
+            Disposes this object.
             </summary>
         </member>
         <member name="T:JVermeulen.Processing.Session">
@@ -103,7 +297,7 @@
             The timestamp this session stopped.
             </summary>
         </member>
-        <member name="P:JVermeulen.Processing.Session.Duration">
+        <member name="P:JVermeulen.Processing.Session.Elapsed">
             <summary>
             The duration between StartedAt and StoppedAt. If this session is not stopped, the current time will be used.
             </summary>
@@ -214,153 +408,6 @@
             <summary>
             The session is starting.
             </summary>
-        </member>
-        <member name="T:JVermeulen.Processing.SubscriptionQueue`1">
-            <summary>
-            A queue of messages you can subscribe to. Message are handled one-by-one.
-            </summary>
-            <typeparam name="T">The message type.</typeparam>
-        </member>
-        <member name="P:JVermeulen.Processing.SubscriptionQueue`1.Scheduler">
-            <summary>
-            The Scheduler that handles messages.
-            </summary>
-        </member>
-        <member name="P:JVermeulen.Processing.SubscriptionQueue`1.Value">
-            <summary>
-            The internal value used for the Queue.
-            </summary>
-        </member>
-        <member name="P:JVermeulen.Processing.SubscriptionQueue`1.Queue">
-            <summary>
-            The internal queue to subscribe to.
-            </summary>
-        </member>
-        <member name="P:JVermeulen.Processing.SubscriptionQueue`1.ProcessedValuesCounter">
-            <summary>
-            Counts the processed messages from the queue.
-            </summary>
-        </member>
-        <member name="P:JVermeulen.Processing.SubscriptionQueue`1.PendingValuesCounter">
-            <summary>
-            Counts the pending messages in the Queue.
-            </summary>
-        </member>
-        <member name="P:JVermeulen.Processing.SubscriptionQueue`1.NumberOfValuesPending">
-            <summary>
-            The number of processed messages from the queue.
-            </summary>
-        </member>
-        <member name="P:JVermeulen.Processing.SubscriptionQueue`1.NumberOfValuesProcessed">
-            <summary>
-            The number of pending messages in the Queue.
-            </summary>
-        </member>
-        <member name="P:JVermeulen.Processing.SubscriptionQueue`1.OptionWriteToConsole">
-            <summary>
-            When true, processed messages are send to the Console. Default is false.
-            </summary>
-        </member>
-        <member name="M:JVermeulen.Processing.SubscriptionQueue`1.#ctor(System.Reactive.Concurrency.IScheduler)">
-            <summary>
-            The constructor of this class.
-            </summary>
-            <param name="scheduler">The Scheduler that handles messages.</param>
-        </member>
-        <member name="M:JVermeulen.Processing.SubscriptionQueue`1.Subscribe(System.Action{`0},System.Action{System.Exception})">
-            <summary>
-            Subscribe to the Queue.
-            </summary>
-            <param name="onNext">What to do with messages received from Queue.</param>
-            <param name="onError">What to do with errors occured in the onNext action.</param>
-            <returns></returns>
-        </member>
-        <member name="M:JVermeulen.Processing.SubscriptionQueue`1.Subscribe(System.IObservable{`0},System.Action{`0},System.Action{System.Exception})">
-            <summary>
-            Subscribe to the given Queue.
-            </summary>
-            <param name="queue">A queue of messages you can subscribe to.</param>
-            <param name="onNext">What to do with messages received from Queue.</param>
-            <param name="onError">What to do with errors occured in the onNext action.</param>
-            <returns></returns>
-        </member>
-        <member name="M:JVermeulen.Processing.SubscriptionQueue`1.ActionAndCatch(System.Action{`0},System.Action{System.Exception})">
-            <summary>
-            Cathes exceptions occured in the action.
-            </summary>
-            <param name="action">The action to invoke.</param>
-            <param name="catchAction">What to do with errors occured in the action.</param>
-        </member>
-        <member name="M:JVermeulen.Processing.SubscriptionQueue`1.Enqueue(`0)">
-            <summary>
-            Sends the given message to the Queue and to the subscribers.
-            </summary>
-            <param name="value">The message to send.</param>
-        </member>
-        <member name="M:JVermeulen.Processing.SubscriptionQueue`1.OnDequeue(`0)">
-            <summary>
-            Internal subscription to the queue.
-            </summary>
-            <param name="value">The received message.</param>
-        </member>
-        <member name="M:JVermeulen.Processing.SubscriptionQueue`1.OnError(System.Exception)">
-            <summary>
-            What to do with errors occured in the action.
-            </summary>
-            <param name="ex">The occured exception.</param>
-        </member>
-        <member name="M:JVermeulen.Processing.SubscriptionQueue`1.Dispose">
-            <summary>
-            Disposes this object.
-            </summary>
-        </member>
-        <member name="T:JVermeulen.Processing.SubscriptionSession">
-            <summary>
-            A session that contains a SubscriptionQueue running on the given Scheduler.
-            </summary>
-        </member>
-        <member name="P:JVermeulen.Processing.SubscriptionSession.Scheduler">
-            <summary>
-            The Scheduler that handles messages.
-            </summary>
-        </member>
-        <member name="P:JVermeulen.Processing.SubscriptionSession.Queue">
-            <summary>
-            The SubscriptionQueue to subscribe to new messages.
-            </summary>
-        </member>
-        <member name="M:JVermeulen.Processing.SubscriptionSession.#ctor(System.Reactive.Concurrency.IScheduler)">
-            <summary>
-            The constructor of this class.
-            </summary>
-            <param name="scheduler">The Scheduler that handles messages.</param>
-        </member>
-        <member name="M:JVermeulen.Processing.SubscriptionSession.OnStarting">
-            <summary>
-            Sends the new status to the Queue.
-            </summary>
-        </member>
-        <member name="M:JVermeulen.Processing.SubscriptionSession.OnStarted">
-            <summary>
-            Sends the new status to the Queue.
-            </summary>
-        </member>
-        <member name="M:JVermeulen.Processing.SubscriptionSession.OnStopping">
-            <summary>
-            Sends the new status to the Queue.
-            </summary>
-        </member>
-        <member name="M:JVermeulen.Processing.SubscriptionSession.OnStopped">
-            <summary>
-            Sends the new status to the Queue.
-            </summary>
-        </member>
-        <member name="M:JVermeulen.Processing.SubscriptionSession.Subscribe(System.Action{JVermeulen.Processing.SessionMessage},System.Action{System.Exception})">
-            <summary>
-            Subscribe to the Queue.
-            </summary>
-            <param name="onNext">What to do with messages received from Queue.</param>
-            <param name="onError">What to do with errors occured in the onNext action.</param>
         </member>
         <member name="T:JVermeulen.Processing.ValueCounter">
             <summary>

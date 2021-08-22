@@ -89,7 +89,7 @@ namespace JVermeulen.Processing
             lock (SyncLock)
             {
                 value = Value;
-                duration = Duration;
+                duration = Elapsed;
                 valuesPerSecond = duration != default ? value / duration.TotalSeconds : 0;
                 percentage = Max > 0 ? (double)Value / (double)Max : 0;
 

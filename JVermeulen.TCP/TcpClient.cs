@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.TCP
 {
-    public class TcpClient<T> : BaseTcpSocket<T>
+    public class TcpClient<T> : TcpSocketBase<T>
     {
         public override bool IsServer => false;
         public bool IsConnected => Socket.Connected;
@@ -62,7 +62,7 @@ namespace JVermeulen.TCP
             }
             catch (Exception ex)
             {
-                Queue.Enqueue(new SessionMessage(this, ex));
+                Outbox.Add(new SessionMessage(this, ex));
             }
         }
 
@@ -84,9 +84,9 @@ namespace JVermeulen.TCP
             OnClientConnected(e);
         }
 
-        protected override void OnHeartbeat(long count)
+        protected override void OnHeartbeat(Heartbeat heartbeat)
         {
-            base.OnHeartbeat(count);
+            base.OnHeartbeat(heartbeat);
 
             if (!IsConnected && OptionReconnectOnHeatbeat)
                 Connect();                

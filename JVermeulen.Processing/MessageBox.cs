@@ -9,7 +9,7 @@ namespace JVermeulen.Processing
     /// A queue of messages you can subscribe to. Message are handled one-by-one.
     /// </summary>
     /// <typeparam name="T">The message type.</typeparam>
-    public class SubscriptionQueue<T> : IDisposable
+    public class MessageBox<T> : IDisposable
     {
         /// <summary>
         /// The Scheduler that handles messages.
@@ -17,34 +17,34 @@ namespace JVermeulen.Processing
         public IScheduler Scheduler { get; private set; }
 
         /// <summary>
-        /// The internal value used for the Queue.
+        /// The internal message used for the Queue.
         /// </summary>
-        private Subject<T> Value { get; set; }
+        private Subject<T> Messages { get; set; }
 
         /// <summary>
         /// The internal queue to subscribe to.
         /// </summary>
-        protected IObservable<T> Queue => Value.ObserveOn(Scheduler).AsObservable();
+        public IObservable<T> Observer => Messages.ObserveOn(Scheduler).AsObservable();
 
         /// <summary>
         /// Counts the processed messages from the queue.
         /// </summary>
-        private ValueCounter ProcessedValuesCounter { get; set; }
+        private ValueCounter ProcessedMessageCounter { get; set; }
 
         /// <summary>
         /// Counts the pending messages in the Queue.
         /// </summary>
-        private ValueCounter PendingValuesCounter { get; set; }
+        private ValueCounter PendingMessageCounter { get; set; }
 
         /// <summary>
         /// The number of processed messages from the queue.
         /// </summary>
-        public long NumberOfValuesPending => PendingValuesCounter.Value;
+        public long NumberOfMessagesPending => PendingMessageCounter.Value;
 
         /// <summary>
         /// The number of pending messages in the Queue.
         /// </summary>
-        public long NumberOfValuesProcessed => ProcessedValuesCounter.Value;
+        public long NumberOfMessagesProcessed => ProcessedMessageCounter.Value;
 
         /// <summary>
         /// When true, processed messages are send to the Console. Default is false.
@@ -55,15 +55,27 @@ namespace JVermeulen.Processing
         /// The constructor of this class.
         /// </summary>
         /// <param name="scheduler">The Scheduler that handles messages.</param>
-        public SubscriptionQueue(IScheduler scheduler = null)
+        public MessageBox(IScheduler scheduler = null)
         {
             Scheduler = scheduler ?? new EventLoopScheduler();
-            Value = new Subject<T>();
+            Messages = new Subject<T>();
 
-            ProcessedValuesCounter = new ValueCounter();
-            PendingValuesCounter = new ValueCounter();
+            ProcessedMessageCounter = new ValueCounter();
+            PendingMessageCounter = new ValueCounter();
 
-            Queue.Subscribe(OnDequeue);
+            Observer.Subscribe(OnReceive);
+        }
+
+        /// <summary>
+        /// Filters the elements of an observable sequence based on a predicate.
+        /// </summary>
+        /// <param name="where">A function to test each source element for a condition.</param>
+        /// <param name="onNext">What to do with messages received from Queue.</param>
+        /// <param name="onError">What to do with errors occured in the onNext action.</param>
+        /// <returns></returns>
+        public IDisposable Where(Func<T, bool> where, Action<T> onNext, Action<Exception> onError = null)
+        {
+            return Observer.Where(where).Subscribe(onNext, onError);
         }
 
         /// <summary>
@@ -74,19 +86,19 @@ namespace JVermeulen.Processing
         /// <returns></returns>
         public IDisposable Subscribe(Action<T> onNext, Action<Exception> onError = null)
         {
-            return Subscribe(Queue, onNext, onError ?? OnError);
+            return Observer.Subscribe(onNext, onError);
         }
 
         /// <summary>
         /// Subscribe to the given Queue.
         /// </summary>
-        /// <param name="queue">A queue of messages you can subscribe to.</param>
+        /// <param name="observer">A queue of messages you can subscribe to.</param>
         /// <param name="onNext">What to do with messages received from Queue.</param>
         /// <param name="onError">What to do with errors occured in the onNext action.</param>
         /// <returns></returns>
-        public static IDisposable Subscribe(IObservable<T> queue, Action<T> onNext, Action<Exception> onError)
+        public static IDisposable Subscribe(this IObservable<T> observer, Action<T> onNext, Action<Exception> onError)
         {
-            return queue.Subscribe(ActionAndCatch(onNext, onError ?? onError), onError);
+            return observer.Subscribe(ActionAndCatch(onNext, onError), onError);
         }
 
         /// <summary>
@@ -112,26 +124,26 @@ namespace JVermeulen.Processing
         /// <summary>
         /// Sends the given message to the Queue and to the subscribers.
         /// </summary>
-        /// <param name="value">The message to send.</param>
-        public void Enqueue(T value)
+        /// <param name="message">The message to send.</param>
+        public void Add(T message)
         {
-            PendingValuesCounter.Increment();
+            PendingMessageCounter.Increment();
 
-            if (!Value.IsDisposed)
-                Value.OnNext(value);
+            if (!Messages.IsDisposed)
+                Messages.OnNext(message);
         }
 
         /// <summary>
         /// Internal subscription to the queue.
         /// </summary>
-        /// <param name="value">The received message.</param>
-        private void OnDequeue(T value)
+        /// <param name="message">The received message.</param>
+        private void OnReceive(T message)
         {
-            PendingValuesCounter.Decrement();
-            ProcessedValuesCounter.Increment();
+            PendingMessageCounter.Decrement();
+            ProcessedMessageCounter.Increment();
 
             if (OptionWriteToConsole)
-                Console.WriteLine($"{DateTime.Now:T} {value}");
+                Console.WriteLine($"{DateTime.Now:T} {message}");
         }
 
         /// <summary>
@@ -148,7 +160,7 @@ namespace JVermeulen.Processing
         /// </summary>
         public void Dispose()
         {
-            Value?.Dispose();
+            Messages?.Dispose();
         }
     }
 }

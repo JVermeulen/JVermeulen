@@ -5,11 +5,12 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace JVermeulen.TCP
 {
-    public abstract class BaseTcpSocket<T> : HeartbeatSession
+    public abstract class TcpSocketBase<T> : Actor
     {
         public abstract bool IsServer { get; }
         protected Socket Socket { get; set; }
@@ -19,21 +20,20 @@ namespace JVermeulen.TCP
         public List<TcpSession<T>> Sessions { get; private set; }
         public List<TcpSession<T>> ConnectedSessions => Sessions.Where(s => s.Socket.Connected).ToList();
 
-        public SubscriptionQueue<SessionMessage> MessageQueue { get; private set; }
         private TcpStatistics HeartbeatStatistics { get; set; }
 
         public bool OptionSendStatisticsOnHeartbeat { get; set; } = false;
         public bool OptionCleanupSessionsOnHeartbeat { get; set; } = false;
 
-        public BaseTcpSocket(ITcpEncoder<T> encoder, IPEndPoint serverEndpoint, TimeSpan interval) : base(interval)
+        public TcpSocketBase(ITcpEncoder<T> encoder, IPEndPoint serverEndpoint, TimeSpan interval) : base()
         {
             ServerEndPoint = serverEndpoint;
             ServerAddress = ServerEndPoint.ToString();
             Encoder = encoder;
+            HeartbeatInterval = interval;
 
             Sessions = new List<TcpSession<T>>();
 
-            MessageQueue = new SubscriptionQueue<SessionMessage>();
             HeartbeatStatistics = new TcpStatistics();
         }
 
@@ -44,7 +44,7 @@ namespace JVermeulen.TCP
             Sessions.ForEach(s => s.Stop());
 
             // Wait for empty MessageQueue
-            while (MessageQueue.NumberOfValuesPending > 0)
+            while (Outbox.NumberOfMessagesPending > 0)
                 Task.Delay(10).Wait();
         }
 
@@ -63,7 +63,7 @@ namespace JVermeulen.TCP
                 }
                 else
                 {
-                    Queue.Enqueue(new SessionMessage(this, e.SocketError));
+                    Outbox.Add(new SessionMessage(this, e.SocketError));
                 }
             }
         }
@@ -77,7 +77,7 @@ namespace JVermeulen.TCP
 
         protected virtual void OnSessionMessage(SessionMessage message)
         {
-            MessageQueue.Enqueue(new SessionMessage(this, message));
+            Outbox.Add(new SessionMessage(this, message));
 
             if (message.Value is SessionStatus sessionStatus)
             {
@@ -101,9 +101,9 @@ namespace JVermeulen.TCP
             }
         }
 
-        protected override void OnHeartbeat(long count)
+        protected override void OnHeartbeat(Heartbeat heartbeat)
         {
-            base.OnHeartbeat(count);
+            base.OnHeartbeat(heartbeat);
 
             var yesterday = DateTime.Now.AddDays(-1);
 
@@ -130,7 +130,7 @@ namespace JVermeulen.TCP
         {
             HeartbeatStatistics.StoppedAt = DateTime.Now;
 
-                Queue.Enqueue(new SessionMessage(this, HeartbeatStatistics));
+            Outbox.Add(new SessionMessage(this, HeartbeatStatistics));
 
             HeartbeatStatistics = new TcpStatistics();
         }

@@ -30,7 +30,7 @@ namespace JVermeulen.Processing
         /// <summary>
         /// The duration between StartedAt and StoppedAt. If this session is not stopped, the current time will be used.
         /// </summary>
-        public TimeSpan Duration => StartedAt == default ? default : (StoppedAt == default ? DateTime.Now - StartedAt : StoppedAt - StartedAt);
+        public TimeSpan Elapsed => StartedAt == default ? default : (StoppedAt == default ? DateTime.Now - StartedAt : StoppedAt - StartedAt);
 
         /// <summary>
         /// The constructor of this class.

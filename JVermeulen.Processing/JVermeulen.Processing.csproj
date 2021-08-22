@@ -6,7 +6,7 @@
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/JVermeulen/JVermeulen</PackageProjectUrl>
-    <Description>Contains session based classes using the Reactive pattern with subscription queues.</Description>
+    <Description>Contains session based classes using the Actor pattern with subscription queues, handling messages one-by-one.</Description>
     <Company>Joost Vermeulen</Company>
     <Authors>Joost Vermeulen</Authors>
   </PropertyGroup>

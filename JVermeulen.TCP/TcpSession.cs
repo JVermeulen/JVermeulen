@@ -9,10 +9,8 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.TCP
 {
-    public class TcpSession<T> : HeartbeatSession
+    public class TcpSession<T> : Actor
     {
-        private HeartbeatSession Heartbeat { get; set; }
-
         public ValueCounter NumberOfBytesReceived { get; set; }
         public ValueCounter NumberOfBytesSent { get; set; }
         public ValueCounter NumberOfMessagesReceived { get; set; }
@@ -29,7 +27,7 @@ namespace JVermeulen.TCP
         private SocketAsyncEventArgs ReceiveEventArgs { get; set; }
         private SocketAsyncEventArgs SendEventArgs { get; set; }
 
-        public SubscriptionQueue<SessionMessage> MessageQueue { get; private set; }
+        public MessageBox<SessionMessage> MessageQueue { get; private set; }
 
         public bool OptionPollOnHeartbeat { get; set; } = true;
 
@@ -54,12 +52,12 @@ namespace JVermeulen.TCP
             SendEventArgs = new SocketAsyncEventArgs();
             SendEventArgs.Completed += OnAsyncCompleted;
 
-            MessageQueue = new SubscriptionQueue<SessionMessage>();
+            MessageQueue = new MessageBox<SessionMessage>();
         }
 
-        protected override void OnHeartbeat(long count)
+        protected override void OnHeartbeat(Heartbeat heartbeat)
         {
-            base.OnHeartbeat(count);
+            base.OnHeartbeat(heartbeat);
 
             if (OptionPollOnHeartbeat)
                 PollClient();
@@ -70,7 +68,7 @@ namespace JVermeulen.TCP
             var isActive = TryPollClient();
 
             var message = new TcpPoll(isActive);
-            Queue.Enqueue(new SessionMessage(this, message));
+            Outbox.Add(new SessionMessage(this, message));
 
             if (!isActive)
                 Restart();
@@ -115,7 +113,7 @@ namespace JVermeulen.TCP
             NumberOfMessagesSent.Increment();
 
             var message = new TcpMessage<T>(LocalAddress, RemoteAddress, false, (T)e.UserToken, e.BytesTransferred);
-            MessageQueue.Enqueue(new(this, message));
+            MessageQueue.Add(new(this, message));
         }
 
         protected override void OnStarting()
@@ -123,8 +121,6 @@ namespace JVermeulen.TCP
             base.OnStarting();
 
             WaitForReceive();
-
-            Heartbeat?.Start();
         }
 
         protected override void OnStopping()
@@ -133,8 +129,6 @@ namespace JVermeulen.TCP
 
             if (Socket.Connected)
             {
-                Heartbeat?.Stop();
-
                 Socket.Shutdown(SocketShutdown.Both);
                 Socket.Close();
             }
@@ -167,7 +161,7 @@ namespace JVermeulen.TCP
                             NumberOfMessagesReceived.Increment();
 
                             var message = new TcpMessage<T>(RemoteAddress, LocalAddress, true, content, e.BytesTransferred);
-                            MessageQueue.Enqueue(new SessionMessage(this, message));
+                            MessageQueue.Add(new SessionMessage(this, message));
 
                             ReceiveBuffer.Data = nextContent;
                         }

@@ -3,6 +3,8 @@ using JVermeulen.Processing;
 using JVermeulen.TCP;
 using JVermeulen.TCP.Encoders;
 using System;
+using System.Reactive.Linq;
+using System.Threading.Tasks;
 
 namespace JVermeulen.Tester
 {
@@ -10,27 +12,38 @@ namespace JVermeulen.Tester
     {
         static void Main(string[] args)
         {
-            //using (var server = new TcpServer<string>(XmlTcpEncoder.UTF8Encoder, 6000))
-            //{
-            //    server.Queue.OptionWriteToConsole = true;
-            //    server.MessageQueue.OptionWriteToConsole = true;
-            //    server.OptionBroadcastMessages = true;
-            //    server.OptionEchoMessages = true;
+            using (var server = new TcpServer<string>(XmlTcpEncoder.UTF8Encoder, 6000))
+            {
+                server.Outbox.OptionWriteToConsole = true;
+                server.OptionBroadcastMessages = true;
+                server.Outbox.Where(m => m.Value is SessionStatus sessionStatus, OnNext);
+                server.Start();
 
-            //    server.Start();
-            //    //using (var client = new TcpClient<string>(XmlTcpEncoder.UTF8Encoder, "127.0.0.1", 6000))
-            //    //{
-            //    //    client.Queue.OptionWriteToConsole = true;
-            //    //    //client.MessageQueue.OptionWriteToConsole = true;
+                //using (var client = new TcpClient<string>(XmlTcpEncoder.UTF8Encoder, "127.0.0.1", 6000))
+                //{
+                //    client.Queue.OptionWriteToConsole = true;
+                //    //client.MessageQueue.OptionWriteToConsole = true;
 
-            //    //    Task.Delay(15000).Wait();
-            //    //}
+                //    Task.Delay(15000).Wait();
+                //}
 
-            //    Task.Delay(30000).Wait();
-            //}
+                Task.Delay(30000).Wait();
+            }
 
             TestAppInfo();
             TestNetworkInfo();
+        }
+
+        private static void OnError(Exception obj)
+        {
+            throw new NotImplementedException();
+        }
+
+        private static void OnNext(SessionMessage message)
+        {
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine(message);
+            Console.ResetColor();
         }
 
         private static void TestAppInfo()

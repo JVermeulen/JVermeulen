@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.TCP
 {
-    public class TcpServer<T> : BaseTcpSocket<T>
+    public class TcpServer<T> : TcpSocketBase<T>
     {
         public override bool IsServer => true;
         private SocketAsyncEventArgs AcceptorEventArgs { get; set; }
