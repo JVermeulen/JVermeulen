@@ -50,7 +50,7 @@ namespace JVermeulen.Processing
             OptionHeartbeatInterval = heartbeatInterval;
 
             Inbox = new MessageBox<SessionMessage>(new EventLoopScheduler());
-            Inbox.SubscribeSafe(OnReceived);
+            Inbox.SubscribeSafe(OnReceive);
 
             Outbox = new MessageBox<SessionMessage>(scheduler ?? new EventLoopScheduler());
         }
@@ -59,7 +59,7 @@ namespace JVermeulen.Processing
         /// Process messages from the Inbox.
         /// </summary>
         /// <param name="message">The message to process.</param>
-        protected virtual void OnReceived(SessionMessage message) { }
+        protected virtual void OnReceive(SessionMessage message) { }
 
         /// <summary>
         /// Subscribe to the Outbox.

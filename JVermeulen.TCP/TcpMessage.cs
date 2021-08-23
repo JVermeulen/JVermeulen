@@ -7,13 +7,13 @@ namespace JVermeulen.TCP
         public Guid Id { get; private set; }
         public DateTime CreatedAt { get; private set; }
 
-        public string Sender { get; private set; }
-        public string Destination { get; private set; }
-        public bool IsIncoming { get; private set; }
-        public T Content { get; private set; }
-        public int ContentInBytes { get; private set; }
+        public string Sender { get; set; }
+        public string Destination { get; set; }
+        public bool IsIncoming { get; set; }
+        public T Content { get; set; }
+        public int? ContentInBytes { get; set; }
 
-        public TcpMessage(string sender, string destination, bool isIncoming, T content, int contentInBytes)
+        public TcpMessage(string sender, string destination, bool isIncoming, T content, int? contentInBytes = null)
         {
             Id = Guid.NewGuid();
             CreatedAt = DateTime.Now;
@@ -29,7 +29,7 @@ namespace JVermeulen.TCP
         {
             var direction = IsIncoming ? "received" : "sent";
 
-            return $"TCP Message {direction} ({Content})";
+            return $"TCP Message {direction} ({ContentInBytes} bytes)";
         }
     }
 }

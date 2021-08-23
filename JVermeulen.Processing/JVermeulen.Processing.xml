@@ -46,7 +46,7 @@
             <param name="heartbeatInterval">The time between heartbeats. When default, no heartbeats will be generated.</param>
             <param name="scheduler">The scheduler of the Outbox. When null, a new EventLoopScheduler is used.</param>
         </member>
-        <member name="M:JVermeulen.Processing.Actor.OnReceived(JVermeulen.Processing.SessionMessage)">
+        <member name="M:JVermeulen.Processing.Actor.OnReceive(JVermeulen.Processing.SessionMessage)">
             <summary>
             Process messages from the Inbox.
             </summary>

@@ -70,32 +70,28 @@ namespace JVermeulen.TCP
             }
         }
 
-        protected override void OnSessionMessage(SessionMessage message)
+        protected override void OnTcpSessionReceive(SessionMessage message)
         {
-            base.OnSessionMessage(message);
+            base.OnTcpSessionReceive(message);
 
             if (message.Value is TcpMessage<T> tcpMessage && tcpMessage.IsIncoming)
             {
                 if (OptionBroadcastMessages)
-                    Broadcast(tcpMessage.Sender, tcpMessage.Content);
+                    Broadcast(tcpMessage.Content, tcpMessage.Sender);
 
                 if (OptionEchoMessages)
-                    Echo(tcpMessage.Sender, tcpMessage.Content);
+                    Echo(tcpMessage.Content, tcpMessage.Sender);
             }
         }
 
-        public void Broadcast(string sender, T content)
+        public void Echo(T content, string sender)
         {
-            var sessions = Sessions.Where(s => s.IsConnected && s.RemoteAddress != sender).ToList();
-
-            sessions.ForEach(s => s.Write(content));
+            Send(content, s => s.IsConnected && s.RemoteAddress == sender);
         }
 
-        public void Echo(string sender, T content)
+        public void Broadcast(T content, string sender)
         {
-            var sessions = Sessions.Where(s => s.IsConnected && s.RemoteAddress == sender).ToList();
-
-            sessions.ForEach(s => s.Write(content));
+            Send(content, s => s.IsConnected && s.RemoteAddress != sender);
         }
 
         public override string ToString()

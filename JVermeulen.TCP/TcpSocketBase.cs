@@ -42,10 +42,10 @@ namespace JVermeulen.TCP
             base.OnStopping();
 
             Sessions.ForEach(s => s.Stop());
-
+            
             // Wait for empty MessageQueue
             while (Outbox.NumberOfMessagesPending > 0)
-                Task.Delay(10).Wait();
+                Thread.Yield();
         }
 
         protected void OnClientConnected(SocketAsyncEventArgs e)
@@ -55,8 +55,9 @@ namespace JVermeulen.TCP
                 if (e.SocketError == SocketError.Success)
                 {
                     var session = new TcpSession<T>(e.AcceptSocket ?? e.ConnectSocket, IsServer, Encoder);
-                    session.Subscribe(OnSessionMessage);
-                    session.MessageQueue.SubscribeSafe(OnSessionMessage);
+                    session.SubscribeSafe<SessionStatus>(OnTcpSessionReceive);
+                    //session.Subscribe(OnTcpSessionReceive);
+                    session.MessageQueue.SubscribeSafe(OnTcpSessionReceive);
                     session.Start();
 
                     Sessions.Add(session);
@@ -68,14 +69,36 @@ namespace JVermeulen.TCP
             }
         }
 
-        public void Send(T content, string filterRemoteAddress = null)
+        public void Send(T content, TcpSession<T> session)
         {
-            var sessions = filterRemoteAddress == null ? ConnectedSessions : ConnectedSessions.Where(c => c.RemoteAddress.StartsWith(filterRemoteAddress, StringComparison.OrdinalIgnoreCase)).ToList();
+            var message = new TcpMessage<T>(session.LocalAddress, session.RemoteAddress, false, content, null);
 
-            sessions.ForEach(s => s.Write(content));
+            Inbox.Add(new SessionMessage(this, message));
         }
 
-        protected virtual void OnSessionMessage(SessionMessage message)
+        public void Send(T content, Func<TcpSession<T>, bool> where)
+        {
+            var sessions = Sessions.Where(where);
+
+            foreach(var session in sessions)
+            {
+                Send(content, session);
+            }
+        }
+
+        protected override void OnReceive(SessionMessage message)
+        {
+            base.OnReceive(message);
+
+            if (message.Value is TcpMessage<T> tcpMessage)
+            {
+                var session = Sessions.FirstOrDefault(s => s.RemoteAddress == tcpMessage.Destination);
+
+                session.Write(tcpMessage);
+            }
+        }
+
+        protected virtual void OnTcpSessionReceive(SessionMessage message)
         {
             Outbox.Add(new SessionMessage(this, message));
 
@@ -90,12 +113,12 @@ namespace JVermeulen.TCP
             {
                 if (tcpMessage.IsIncoming)
                 {
-                    HeartbeatStatistics.NumberOfBytesReceived += tcpMessage.ContentInBytes;
+                    HeartbeatStatistics.NumberOfBytesReceived += tcpMessage.ContentInBytes ?? 0;
                     HeartbeatStatistics.NumberOfMessagesReceived++;
                 }
                 else
                 {
-                    HeartbeatStatistics.NumberOfBytesSent += tcpMessage.ContentInBytes;
+                    HeartbeatStatistics.NumberOfBytesSent += tcpMessage.ContentInBytes ?? 0;
                     HeartbeatStatistics.NumberOfMessagesSent++;
                 }
             }

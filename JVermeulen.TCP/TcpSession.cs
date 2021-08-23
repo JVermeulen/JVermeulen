@@ -86,16 +86,37 @@ namespace JVermeulen.TCP
             }
         }
 
-        public void Write(T content)
+        //public void Write(T content)
+        //{
+        //    try
+        //    {
+        //        if (IsConnected)
+        //        {
+        //            var data = Encoder.Encode(content);
+
+        //            SendEventArgs.SetBuffer(data);
+        //            SendEventArgs.UserToken = content;
+
+        //            if (!Socket.SendAsync(SendEventArgs))
+        //                OnSend(SendEventArgs);
+        //        }
+        //    }
+        //    catch
+        //    {
+        //        Stop();
+        //    }
+        //}
+
+        public void Write(TcpMessage<T> message)
         {
             try
             {
                 if (IsConnected)
                 {
-                    var data = Encoder.Encode(content);
+                    var data = Encoder.Encode(message.Content);
 
                     SendEventArgs.SetBuffer(data);
-                    SendEventArgs.UserToken = content;
+                    SendEventArgs.UserToken = message;
 
                     if (!Socket.SendAsync(SendEventArgs))
                         OnSend(SendEventArgs);
@@ -112,7 +133,9 @@ namespace JVermeulen.TCP
             NumberOfBytesSent.Add(e.BytesTransferred);
             NumberOfMessagesSent.Increment();
 
-            var message = new TcpMessage<T>(LocalAddress, RemoteAddress, false, (T)e.UserToken, e.BytesTransferred);
+            var message = (TcpMessage<T>)e.UserToken;
+            message.ContentInBytes = e.BytesTransferred;
+
             MessageQueue.Add(new(this, message));
         }
 
