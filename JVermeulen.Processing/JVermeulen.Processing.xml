@@ -29,12 +29,12 @@
             When true, status changes are send to the Outbox. Default is true.
             </summary>
         </member>
-        <member name="P:JVermeulen.Processing.Actor.Heart">
+        <member name="P:JVermeulen.Processing.Actor.HeartbeatProvider">
             <summary>
-            Internal heartbeat generator.
+            Generates heartbeat at the given interval.
             </summary>
         </member>
-        <member name="P:JVermeulen.Processing.Actor.HeartbeatInterval">
+        <member name="P:JVermeulen.Processing.Actor.OptionHeartbeatInterval">
             <summary>
             The interval between heartbeats. Requires (re)start.
             </summary>
@@ -85,6 +85,44 @@
             </summary>
             <param name="heartbeat">The heartbeat message.</param>
         </member>
+        <member name="M:JVermeulen.Processing.Actor.Subscribe(System.IObserver{JVermeulen.Processing.SessionMessage})">
+            <summary>
+            Subscribes a message handler.
+            </summary>
+            <param name="observer">The handler.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.Actor.SubscribeSafe(System.Action{JVermeulen.Processing.SessionMessage},System.Action{System.Exception},System.Func{JVermeulen.Processing.SessionMessage,System.Boolean})">
+            <summary>
+            Subscribe to the Outbox.
+            </summary>
+            <param name="onNext">What to do with messages received from Outbox.</param>
+            <param name="onError">What to do with errors occured in the onNext action.</param>
+            <param name="where">A function to test each source element for a condition.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.Actor.SubscribeSafe``1(System.Action{JVermeulen.Processing.SessionMessage},System.Action{System.Exception},System.Int32)">
+            <summary>
+            Subscribe to the actor. T is the Value type to check for.
+            </summary>
+            <param name="onNext">What to do with messages received from Outbox.</param>
+            <param name="onError">What to do with errors occured in the onNext action.</param>
+            <param name="recursive">When true, checks for the inner SessionMessage.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.Actor.SubscribeSafe``2(System.Action{JVermeulen.Processing.SessionMessage},System.Action{System.Exception},System.Int32)">
+            <summary>
+            Subscribe to the actor. T is the Value type to check for.
+            </summary>
+            <param name="onNext">What to do with messages received from Outbox.</param>
+            <param name="onError">What to do with errors occured in the onNext action.</param>
+            <param name="recursive">When true, checks for the inner SessionMessage.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.Actor.SubscribeSafe``3(System.Action{JVermeulen.Processing.SessionMessage},System.Action{System.Exception},System.Int32)">
+            <summary>
+            Subscribe to the actor. T is the Value type to check for.
+            </summary>
+            <param name="onNext">What to do with messages received from Outbox.</param>
+            <param name="onError">What to do with errors occured in the onNext action.</param>
+            <param name="recursive">When true, checks for the inner SessionMessage.</param>
+        </member>
         <member name="T:JVermeulen.Processing.Heartbeat">
             <summary>
             Represents a heartbeat.
@@ -106,42 +144,31 @@
             A String that represents the current object.
             </summary>
         </member>
-        <member name="T:JVermeulen.Processing.HeartbeatBox">
+        <member name="T:JVermeulen.Processing.HeartbeatProvider">
             <summary>
             Generates heartbeat at the given interval.
             </summary>
         </member>
-        <member name="P:JVermeulen.Processing.HeartbeatBox.IsStarted">
-            <summary>
-            Returs true when started.
-            </summary>
-        </member>
-        <member name="P:JVermeulen.Processing.HeartbeatBox.Interval">
+        <member name="P:JVermeulen.Processing.HeartbeatProvider.Interval">
             <summary>
             The interval between heartbeats. When default, no heartbeats will be generated. Requires (re)start after change.
             </summary>
         </member>
-        <member name="P:JVermeulen.Processing.HeartbeatBox.Cancellation">
+        <member name="P:JVermeulen.Processing.HeartbeatProvider.Cancellation">
             <summary>
             Internal cancel.
             </summary>
         </member>
-        <member name="M:JVermeulen.Processing.HeartbeatBox.#ctor(System.Reactive.Concurrency.IScheduler,System.TimeSpan)">
+        <member name="M:JVermeulen.Processing.HeartbeatProvider.#ctor(System.TimeSpan,System.Reactive.Concurrency.IScheduler)">
             <summary>
             The constructor of this class.
             </summary>
-            <param name="scheduler">The Scheduler to use.</param>
             <param name="interval">The interval between heartbeats. When default, no heartbeats will be generated.</param>
+            <param name="scheduler">The Scheduler to use.</param>
         </member>
-        <member name="M:JVermeulen.Processing.HeartbeatBox.Start(System.TimeSpan)">
+        <member name="M:JVermeulen.Processing.HeartbeatProvider.Dispose">
             <summary>
-            Start generating heartbeats.
-            </summary>
-            <param name="interval"></param>
-        </member>
-        <member name="M:JVermeulen.Processing.HeartbeatBox.Stop">
-            <summary>
-            Stop generating heartbeats.
+            Dispose this object.
             </summary>
         </member>
         <member name="T:JVermeulen.Processing.ISession">
@@ -185,16 +212,6 @@
             The internal queue to subscribe to.
             </summary>
         </member>
-        <member name="P:JVermeulen.Processing.MessageBox`1.ProcessedMessageCounter">
-            <summary>
-            Counts the processed messages from the queue.
-            </summary>
-        </member>
-        <member name="P:JVermeulen.Processing.MessageBox`1.PendingMessageCounter">
-            <summary>
-            Counts the pending messages in the Queue.
-            </summary>
-        </member>
         <member name="P:JVermeulen.Processing.MessageBox`1.NumberOfMessagesPending">
             <summary>
             The number of processed messages from the queue.
@@ -214,33 +231,21 @@
             <summary>
             The constructor of this class.
             </summary>
-            <param name="scheduler">The Scheduler that handles messages.</param>
+            <param name="scheduler">The Scheduler that handles messages. When null, a new EventLoopScheduler will be created.</param>
         </member>
-        <member name="M:JVermeulen.Processing.MessageBox`1.Where(System.Func{`0,System.Boolean},System.Action{`0},System.Action{System.Exception})">
+        <member name="M:JVermeulen.Processing.MessageBox`1.Subscribe(System.IObserver{`0})">
             <summary>
-            Filters the elements of an observable sequence based on a predicate.
+            Subscribes a message handler.
             </summary>
+            <param name="observer">The handler.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.MessageBox`1.SubscribeSafe(System.Action{`0},System.Action{System.Exception},System.Func{`0,System.Boolean})">
+            <summary>
+            Subscribe to the observer.
+            </summary>
+            <param name="onNext">What to do with messages received from Outbox.</param>
+            <param name="onError">What to do with errors occured in the onNext action.</param>
             <param name="where">A function to test each source element for a condition.</param>
-            <param name="onNext">What to do with messages received from Queue.</param>
-            <param name="onError">What to do with errors occured in the onNext action.</param>
-            <returns></returns>
-        </member>
-        <member name="M:JVermeulen.Processing.MessageBox`1.Subscribe(System.Action{`0},System.Action{System.Exception})">
-            <summary>
-            Subscribe to the Queue.
-            </summary>
-            <param name="onNext">What to do with messages received from Queue.</param>
-            <param name="onError">What to do with errors occured in the onNext action.</param>
-            <returns></returns>
-        </member>
-        <member name="M:JVermeulen.Processing.MessageBox`1.Subscribe(System.IObservable{`0},System.Action{`0},System.Action{System.Exception})">
-            <summary>
-            Subscribe to the given Queue.
-            </summary>
-            <param name="observer">A queue of messages you can subscribe to.</param>
-            <param name="onNext">What to do with messages received from Queue.</param>
-            <param name="onError">What to do with errors occured in the onNext action.</param>
-            <returns></returns>
         </member>
         <member name="M:JVermeulen.Processing.MessageBox`1.ActionAndCatch(System.Action{`0},System.Action{System.Exception})">
             <summary>
@@ -378,6 +383,32 @@
             </summary>
             <param name="sender">The sender of this message.</param>
             <param name="value">The value of this message.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.SessionMessage.ValueIsTypeof(System.Collections.Generic.List{System.Type},System.Int32)">
+            <summary>
+            Checks if the Value is of the given type.
+            </summary>
+            <param name="types">The types to check for.</param>
+            <param name="recursive">When true, checks for the inner SessionMessage.</param>
+            <returns></returns>
+        </member>
+        <member name="M:JVermeulen.Processing.SessionMessage.ValueIsTypeof``1(System.Int32)">
+            <summary>
+            Checks if the Value is of the given type. T is the type to check for.
+            </summary>
+            <param name="recursive">When true, checks for the inner SessionMessage.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.SessionMessage.ValueIsTypeof``2(System.Int32)">
+            <summary>
+            Checks if the Value is of the given type. Tx is the types to check for.
+            </summary>
+            <param name="recursive">When true, checks for the inner SessionMessage.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.SessionMessage.ValueIsTypeof``3(System.Int32)">
+            <summary>
+            Checks if the Value is of the given type. Tx is the types to check for.
+            </summary>
+            <param name="recursive">When true, checks for the inner SessionMessage.</param>
         </member>
         <member name="M:JVermeulen.Processing.SessionMessage.ToString">
             <summary>

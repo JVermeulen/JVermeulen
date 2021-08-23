@@ -30,7 +30,7 @@ namespace JVermeulen.TCP
             ServerEndPoint = serverEndpoint;
             ServerAddress = ServerEndPoint.ToString();
             Encoder = encoder;
-            HeartbeatInterval = interval;
+            OptionHeartbeatInterval = interval;
 
             Sessions = new List<TcpSession<T>>();
 
@@ -56,7 +56,7 @@ namespace JVermeulen.TCP
                 {
                     var session = new TcpSession<T>(e.AcceptSocket ?? e.ConnectSocket, IsServer, Encoder);
                     session.Subscribe(OnSessionMessage);
-                    session.MessageQueue.Subscribe(OnSessionMessage);
+                    session.MessageQueue.SubscribeSafe(OnSessionMessage);
                     session.Start();
 
                     Sessions.Add(session);

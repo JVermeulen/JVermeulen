@@ -8,7 +8,7 @@ namespace JVermeulen.Processing
     /// <summary>
     /// Concurrent processing of messages using the Actor model.
     /// </summary>
-    public class Actor : Session
+    public class Actor : Session, IObservable<SessionMessage>
     {
         /// <summary>
         /// The MessageBox for incoming messages.
@@ -31,14 +31,14 @@ namespace JVermeulen.Processing
         public bool OptionSendStatusChangedToOutbox { get; set; } = true;
 
         /// <summary>
-        /// Internal heartbeat generator.
+        /// Generates heartbeat at the given interval.
         /// </summary>
-        private HeartbeatBox Heart { get; set; }
+        private HeartbeatProvider HeartbeatProvider { get; set; }
 
         /// <summary>
         /// The interval between heartbeats. Requires (re)start.
         /// </summary>
-        public TimeSpan HeartbeatInterval { get => Heart.Interval; set => Heart.Interval = value; }
+        public TimeSpan OptionHeartbeatInterval { get; set; }
 
         /// <summary>
         /// The constructor of this class.
@@ -47,13 +47,12 @@ namespace JVermeulen.Processing
         /// <param name="scheduler">The scheduler of the Outbox. When null, a new EventLoopScheduler is used.</param>
         public Actor(TimeSpan heartbeatInterval = default, IScheduler scheduler = null)
         {
+            OptionHeartbeatInterval = heartbeatInterval;
+
             Inbox = new MessageBox<SessionMessage>(new EventLoopScheduler());
-            Inbox.Subscribe(OnReceived);
+            Inbox.SubscribeSafe(OnReceived);
 
             Outbox = new MessageBox<SessionMessage>(scheduler ?? new EventLoopScheduler());
-
-            Heart = new HeartbeatBox(Inbox.Scheduler, heartbeatInterval);
-            Heart.Subscribe(OnHeartbeat);
         }
 
         /// <summary>
@@ -69,7 +68,7 @@ namespace JVermeulen.Processing
         /// <param name="onError">What to do with errors occured in the onNext action.</param>
         public virtual IDisposable Subscribe(Action<SessionMessage> onNext, Action<Exception> onError = null)
         {
-            return Outbox.Subscribe(onNext, onError);
+            return Outbox.SubscribeSafe(onNext, onError);
         }
 
         /// <summary>
@@ -82,7 +81,11 @@ namespace JVermeulen.Processing
             if (OptionSendStatusChangedToOutbox)
                 Outbox.Add(new SessionMessage(this, Status));
 
-            Heart.Start(HeartbeatInterval);
+            if (OptionHeartbeatInterval != default)
+            {
+                HeartbeatProvider = new HeartbeatProvider(OptionHeartbeatInterval, Inbox.Scheduler);
+                HeartbeatProvider.SubscribeSafe(OnHeartbeat);
+            }
         }
 
         /// <summary>
@@ -103,7 +106,7 @@ namespace JVermeulen.Processing
         {
             base.OnStopping();
 
-            Heart.Stop();
+            HeartbeatProvider?.Dispose();
 
             if (OptionSendStatusChangedToOutbox)
                 Outbox.Add(new SessionMessage(this, Status));
@@ -128,6 +131,59 @@ namespace JVermeulen.Processing
         {
             if (OptionSendHeartbeatToOutbox)
                 Outbox.Add(new SessionMessage(this, heartbeat));
+        }
+
+        /// <summary>
+        /// Subscribes a message handler.
+        /// </summary>
+        /// <param name="observer">The handler.</param>
+        public IDisposable Subscribe(IObserver<SessionMessage> observer)
+        {
+            return Outbox.Subscribe(observer);
+        }
+
+        /// <summary>
+        /// Subscribe to the Outbox.
+        /// </summary>
+        /// <param name="onNext">What to do with messages received from Outbox.</param>
+        /// <param name="onError">What to do with errors occured in the onNext action.</param>
+        /// <param name="where">A function to test each source element for a condition.</param>
+        public IDisposable SubscribeSafe(Action<SessionMessage> onNext, Action<Exception> onError = null, Func<SessionMessage, bool> where = null)
+        {
+            return Outbox.SubscribeSafe(onNext, onError, where);
+        }
+
+        /// <summary>
+        /// Subscribe to the actor. T is the Value type to check for.
+        /// </summary>
+        /// <param name="onNext">What to do with messages received from Outbox.</param>
+        /// <param name="onError">What to do with errors occured in the onNext action.</param>
+        /// <param name="recursive">When true, checks for the inner SessionMessage.</param>
+        public IDisposable SubscribeSafe<T1>(Action<SessionMessage> onNext, Action<Exception> onError = null, int recursive = 0)
+        {
+            return SubscribeSafe(onNext, onError, m => m.ValueIsTypeof<T1>(recursive));
+        }
+
+        /// <summary>
+        /// Subscribe to the actor. T is the Value type to check for.
+        /// </summary>
+        /// <param name="onNext">What to do with messages received from Outbox.</param>
+        /// <param name="onError">What to do with errors occured in the onNext action.</param>
+        /// <param name="recursive">When true, checks for the inner SessionMessage.</param>
+        public IDisposable SubscribeSafe<T1, T2>(Action<SessionMessage> onNext, Action<Exception> onError = null, int recursive = 0)
+        {
+            return SubscribeSafe(onNext, onError, m => m.ValueIsTypeof<T1, T2>(recursive));
+        }
+
+        /// <summary>
+        /// Subscribe to the actor. T is the Value type to check for.
+        /// </summary>
+        /// <param name="onNext">What to do with messages received from Outbox.</param>
+        /// <param name="onError">What to do with errors occured in the onNext action.</param>
+        /// <param name="recursive">When true, checks for the inner SessionMessage.</param>
+        public IDisposable SubscribeSafe<T1, T2, T3>(Action<SessionMessage> onNext, Action<Exception> onError = null, int recursive = 0)
+        {
+            return SubscribeSafe(onNext, onError, m => m.ValueIsTypeof<T1, T2, T3>(recursive));
         }
     }
 }

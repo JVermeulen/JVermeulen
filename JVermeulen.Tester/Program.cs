@@ -14,11 +14,14 @@ namespace JVermeulen.Tester
         {
             using (var server = new TcpServer<string>(XmlTcpEncoder.UTF8Encoder, 6000))
             {
+                server.OptionHeartbeatInterval = TimeSpan.FromSeconds(5);
                 server.Outbox.OptionWriteToConsole = true;
                 server.OptionBroadcastMessages = true;
-                server.Outbox.Where(m => m.Value is SessionStatus sessionStatus, OnNext);
+                server.OptionSendHeartbeatToOutbox = true;
+                server.SubscribeSafe<SessionStatus, Heartbeat>(OnNext, OnError, 1);
+                
                 server.Start();
-
+                
                 //using (var client = new TcpClient<string>(XmlTcpEncoder.UTF8Encoder, "127.0.0.1", 6000))
                 //{
                 //    client.Queue.OptionWriteToConsole = true;
@@ -34,15 +37,24 @@ namespace JVermeulen.Tester
             TestNetworkInfo();
         }
 
-        private static void OnError(Exception obj)
-        {
-            throw new NotImplementedException();
-        }
-
         private static void OnNext(SessionMessage message)
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine(message);
+            Console.ResetColor();
+        }
+
+        private static void OnError(Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(ex.Message);
+            Console.ResetColor();
+        }
+
+        private static void OnCompleted()
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("Completed");
             Console.ResetColor();
         }
 
@@ -74,7 +86,7 @@ namespace JVermeulen.Tester
             Console.WriteLine("NetworkInfo:");
             Console.WriteLine($"- Primary (v4): {NetworkInfo.PrimaryHostname} ({NetworkInfo.PrimaryIPAddress})");
             Console.WriteLine($"- Primary (v6): {NetworkInfo.PrimaryHostname} ({NetworkInfo.PrimaryIPAddressV6})");
-            
+
             var networkAddresses = NetworkInfo.NetworkAddresses;
             foreach (var networkAddress in networkAddresses)
             {

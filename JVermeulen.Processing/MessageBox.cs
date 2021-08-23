@@ -2,6 +2,7 @@
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Threading;
 
 namespace JVermeulen.Processing
 {
@@ -9,7 +10,7 @@ namespace JVermeulen.Processing
     /// A queue of messages you can subscribe to. Message are handled one-by-one.
     /// </summary>
     /// <typeparam name="T">The message type.</typeparam>
-    public class MessageBox<T> : IDisposable
+    public class MessageBox<T> : IObservable<T>, IDisposable
     {
         /// <summary>
         /// The Scheduler that handles messages.
@@ -26,25 +27,18 @@ namespace JVermeulen.Processing
         /// </summary>
         public IObservable<T> Observer => Messages.ObserveOn(Scheduler).AsObservable();
 
-        /// <summary>
-        /// Counts the processed messages from the queue.
-        /// </summary>
-        private ValueCounter ProcessedMessageCounter { get; set; }
-
-        /// <summary>
-        /// Counts the pending messages in the Queue.
-        /// </summary>
-        private ValueCounter PendingMessageCounter { get; set; }
 
         /// <summary>
         /// The number of processed messages from the queue.
         /// </summary>
-        public long NumberOfMessagesPending => PendingMessageCounter.Value;
+        public long NumberOfMessagesPending => Interlocked.Read(ref _NumberOfMessagesPending);
+        private long _NumberOfMessagesPending;
 
         /// <summary>
         /// The number of pending messages in the Queue.
         /// </summary>
-        public long NumberOfMessagesProcessed => ProcessedMessageCounter.Value;
+        public long NumberOfMessagesProcessed => Interlocked.Read(ref _NumberOfMessagesProcessed);
+        private long _NumberOfMessagesProcessed;
 
         /// <summary>
         /// When true, processed messages are send to the Console. Default is false.
@@ -54,51 +48,37 @@ namespace JVermeulen.Processing
         /// <summary>
         /// The constructor of this class.
         /// </summary>
-        /// <param name="scheduler">The Scheduler that handles messages.</param>
+        /// <param name="scheduler">The Scheduler that handles messages. When null, a new EventLoopScheduler will be created.</param>
         public MessageBox(IScheduler scheduler = null)
         {
             Scheduler = scheduler ?? new EventLoopScheduler();
             Messages = new Subject<T>();
 
-            ProcessedMessageCounter = new ValueCounter();
-            PendingMessageCounter = new ValueCounter();
-
             Observer.Subscribe(OnReceive);
         }
 
         /// <summary>
-        /// Filters the elements of an observable sequence based on a predicate.
+        /// Subscribes a message handler.
         /// </summary>
+        /// <param name="observer">The handler.</param>
+        public IDisposable Subscribe(IObserver<T> observer)
+        {
+            return Observer.SubscribeSafe(observer);
+        }
+
+        /// <summary>
+        /// Subscribe to the observer.
+        /// </summary>
+        /// <param name="onNext">What to do with messages received from Outbox.</param>
+        /// <param name="onError">What to do with errors occured in the onNext action.</param>
         /// <param name="where">A function to test each source element for a condition.</param>
-        /// <param name="onNext">What to do with messages received from Queue.</param>
-        /// <param name="onError">What to do with errors occured in the onNext action.</param>
-        /// <returns></returns>
-        public IDisposable Where(Func<T, bool> where, Action<T> onNext, Action<Exception> onError = null)
+        public IDisposable SubscribeSafe(Action<T> onNext, Action<Exception> onError = null, Func<T, bool> where = null)
         {
-            return Observer.Where(where).Subscribe(onNext, onError);
-        }
+            Action<Exception> ignore = (e) => { };
 
-        /// <summary>
-        /// Subscribe to the Queue.
-        /// </summary>
-        /// <param name="onNext">What to do with messages received from Queue.</param>
-        /// <param name="onError">What to do with errors occured in the onNext action.</param>
-        /// <returns></returns>
-        public IDisposable Subscribe(Action<T> onNext, Action<Exception> onError = null)
-        {
-            return Observer.Subscribe(onNext, onError);
-        }
+            var observer = where != null ? Observer.Where(where) : Observer;
 
-        /// <summary>
-        /// Subscribe to the given Queue.
-        /// </summary>
-        /// <param name="observer">A queue of messages you can subscribe to.</param>
-        /// <param name="onNext">What to do with messages received from Queue.</param>
-        /// <param name="onError">What to do with errors occured in the onNext action.</param>
-        /// <returns></returns>
-        public static IDisposable Subscribe(this IObservable<T> observer, Action<T> onNext, Action<Exception> onError)
-        {
-            return observer.Subscribe(ActionAndCatch(onNext, onError), onError);
+            return observer.Subscribe(ActionAndCatch(onNext, onError), onError ?? ignore);
         }
 
         /// <summary>
@@ -106,7 +86,7 @@ namespace JVermeulen.Processing
         /// </summary>
         /// <param name="action">The action to invoke.</param>
         /// <param name="catchAction">What to do with errors occured in the action.</param>
-        public static Action<T> ActionAndCatch(Action<T> action, Action<Exception> catchAction)
+        private static Action<T> ActionAndCatch(Action<T> action, Action<Exception> catchAction)
         {
             return item =>
             {
@@ -127,7 +107,7 @@ namespace JVermeulen.Processing
         /// <param name="message">The message to send.</param>
         public void Add(T message)
         {
-            PendingMessageCounter.Increment();
+            Interlocked.Increment(ref _NumberOfMessagesPending);
 
             if (!Messages.IsDisposed)
                 Messages.OnNext(message);
@@ -139,8 +119,8 @@ namespace JVermeulen.Processing
         /// <param name="message">The received message.</param>
         private void OnReceive(T message)
         {
-            PendingMessageCounter.Decrement();
-            ProcessedMessageCounter.Increment();
+            Interlocked.Decrement(ref _NumberOfMessagesPending);
+            Interlocked.Increment(ref _NumberOfMessagesProcessed);
 
             if (OptionWriteToConsole)
                 Console.WriteLine($"{DateTime.Now:T} {message}");
@@ -158,7 +138,7 @@ namespace JVermeulen.Processing
         /// <summary>
         /// Disposes this object.
         /// </summary>
-        public void Dispose()
+        public virtual void Dispose()
         {
             Messages?.Dispose();
         }

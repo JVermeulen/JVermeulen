@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace JVermeulen.Processing
 {
@@ -39,6 +40,55 @@ namespace JVermeulen.Processing
 
             Sender = sender;
             Value = value;
+        }
+
+        /// <summary>
+        /// Checks if the Value is of the given type.
+        /// </summary>
+        /// <param name="types">The types to check for.</param>
+        /// <param name="recursive">When true, checks for the inner SessionMessage.</param>
+        /// <returns></returns>
+        public bool ValueIsTypeof(List<Type> types, int recursive = 0)
+        {
+            if (Value == null)
+                return false;
+            else if (Value is SessionMessage sessionMessage && recursive > 0)
+                return sessionMessage.ValueIsTypeof(types, recursive - 1);
+            else
+                return types.Contains(Value.GetType());
+        }
+
+        /// <summary>
+        /// Checks if the Value is of the given type. T is the type to check for.
+        /// </summary>
+        /// <param name="recursive">When true, checks for the inner SessionMessage.</param>
+        public bool ValueIsTypeof<T>(int recursive = 0)
+        {
+            var types = new List<Type>() { typeof(T) };
+
+            return ValueIsTypeof(types, recursive);
+        }
+
+        /// <summary>
+        /// Checks if the Value is of the given type. Tx is the types to check for.
+        /// </summary>
+        /// <param name="recursive">When true, checks for the inner SessionMessage.</param>
+        public bool ValueIsTypeof<T1, T2>(int recursive = 0)
+        {
+            var types = new List<Type>() { typeof(T1), typeof(T2) };
+
+            return ValueIsTypeof(types, recursive);
+        }
+
+        /// <summary>
+        /// Checks if the Value is of the given type. Tx is the types to check for.
+        /// </summary>
+        /// <param name="recursive">When true, checks for the inner SessionMessage.</param>
+        public bool ValueIsTypeof<T1, T2, T3>(int recursive = 0)
+        {
+            var types = new List<Type>() { typeof(T1), typeof(T2), typeof(T3) };
+
+            return ValueIsTypeof(types, recursive);
         }
 
         /// <summary>
