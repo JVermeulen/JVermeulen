@@ -107,13 +107,13 @@ namespace JVermeulen.TCP
         //    }
         //}
 
-        public void Write(TcpMessage<T> message)
+        public void Write(ContentMessage<T> message)
         {
             try
             {
                 if (IsConnected)
                 {
-                    var data = Encoder.Encode(message.Content);
+                    var data = Encoder.Encode((T)message.Content);
 
                     SendEventArgs.SetBuffer(data);
                     SendEventArgs.UserToken = message;
@@ -133,7 +133,7 @@ namespace JVermeulen.TCP
             NumberOfBytesSent.Add(e.BytesTransferred);
             NumberOfMessagesSent.Increment();
 
-            var message = (TcpMessage<T>)e.UserToken;
+            var message = (ContentMessage<T>)e.UserToken;
             message.ContentInBytes = e.BytesTransferred;
 
             MessageQueue.Add(new(this, message));
@@ -183,7 +183,7 @@ namespace JVermeulen.TCP
                             NumberOfBytesReceived.Add(ReceiveBuffer.Data.Length - nextContent.Length);
                             NumberOfMessagesReceived.Increment();
 
-                            var message = new TcpMessage<T>(RemoteAddress, LocalAddress, true, content, e.BytesTransferred);
+                            var message = new ContentMessage<T>(RemoteAddress, LocalAddress, true, content, e.BytesTransferred);
                             MessageQueue.Add(new SessionMessage(this, message));
 
                             ReceiveBuffer.Data = nextContent;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Threading;
@@ -10,6 +11,11 @@ namespace JVermeulen.Processing
     /// </summary>
     public class Actor : Session, IObservable<SessionMessage>
     {
+        /// <summary>
+        /// A list of subscriptions from the MessageBox(s).
+        /// </summary>
+        protected List<IDisposable> Subscriptions { get; set; }
+
         /// <summary>
         /// The MessageBox for incoming messages.
         /// </summary>
@@ -47,10 +53,12 @@ namespace JVermeulen.Processing
         /// <param name="scheduler">The scheduler of the Outbox. When null, a new EventLoopScheduler is used.</param>
         public Actor(TimeSpan heartbeatInterval = default, IScheduler scheduler = null)
         {
+            Subscriptions = new List<IDisposable>();
+
             OptionHeartbeatInterval = heartbeatInterval;
 
             Inbox = new MessageBox<SessionMessage>(new EventLoopScheduler());
-            Inbox.SubscribeSafe(OnReceive);
+            Subscriptions.Add(Inbox.SubscribeSafe(OnReceive));
 
             Outbox = new MessageBox<SessionMessage>(scheduler ?? new EventLoopScheduler());
         }
@@ -84,7 +92,7 @@ namespace JVermeulen.Processing
             if (OptionHeartbeatInterval != default)
             {
                 HeartbeatProvider = new HeartbeatProvider(OptionHeartbeatInterval, Inbox.Scheduler);
-                HeartbeatProvider.SubscribeSafe(OnHeartbeat);
+                Subscriptions.Add(HeartbeatProvider.SubscribeSafe(OnHeartbeat));
             }
         }
 
@@ -147,43 +155,50 @@ namespace JVermeulen.Processing
         /// </summary>
         /// <param name="onNext">What to do with messages received from Outbox.</param>
         /// <param name="onError">What to do with errors occured in the onNext action.</param>
-        /// <param name="where">A function to test each source element for a condition.</param>
-        public IDisposable SubscribeSafe(Action<SessionMessage> onNext, Action<Exception> onError = null, Func<SessionMessage, bool> where = null)
+        /// <param name="query">A function to test each source element for a condition.</param>
+        public IDisposable SubscribeSafe(Action<SessionMessage> onNext, Action<Exception> onError = null, Func<SessionMessage, bool> query = null)
         {
-            return Outbox.SubscribeSafe(onNext, onError, where);
+            return Outbox.SubscribeSafe(onNext, onError, query);
         }
 
         /// <summary>
-        /// Subscribe to the actor. T is the Value type to check for.
+        /// Subscribe to the actor. TSender is the Sender type to check for.
         /// </summary>
         /// <param name="onNext">What to do with messages received from Outbox.</param>
         /// <param name="onError">What to do with errors occured in the onNext action.</param>
-        /// <param name="recursive">When true, checks for the inner SessionMessage.</param>
-        public IDisposable SubscribeSafe<T1>(Action<SessionMessage> onNext, Action<Exception> onError = null, int recursive = 0)
+        public IDisposable SubscribeSafe<TSender>(Action<SessionMessage> onNext, Action<Exception> onError = null)
         {
-            return SubscribeSafe(onNext, onError, m => m.ValueIsTypeof<T1>(recursive));
+            return SubscribeSafe(onNext, onError, m => m.SenderIsTypeOf<TSender>());
         }
 
         /// <summary>
-        /// Subscribe to the actor. T is the Value type to check for.
+        /// Subscribe to the actor. TSender/TValue is the Sender/Value type to check for.
         /// </summary>
         /// <param name="onNext">What to do with messages received from Outbox.</param>
         /// <param name="onError">What to do with errors occured in the onNext action.</param>
-        /// <param name="recursive">When true, checks for the inner SessionMessage.</param>
-        public IDisposable SubscribeSafe<T1, T2>(Action<SessionMessage> onNext, Action<Exception> onError = null, int recursive = 0)
+        public IDisposable SubscribeSafe<TSender, TValue>(Action<SessionMessage> onNext, Action<Exception> onError = null)
         {
-            return SubscribeSafe(onNext, onError, m => m.ValueIsTypeof<T1, T2>(recursive));
+            return SubscribeSafe(onNext, onError, m => m.SenderIsTypeOf<TSender>() && m.ContentIsTypeof<TValue>());
         }
 
         /// <summary>
-        /// Subscribe to the actor. T is the Value type to check for.
+        /// Subscribe to the actor. TSender/TValue is the Sender/Value type to check for.
         /// </summary>
         /// <param name="onNext">What to do with messages received from Outbox.</param>
         /// <param name="onError">What to do with errors occured in the onNext action.</param>
-        /// <param name="recursive">When true, checks for the inner SessionMessage.</param>
-        public IDisposable SubscribeSafe<T1, T2, T3>(Action<SessionMessage> onNext, Action<Exception> onError = null, int recursive = 0)
+        public IDisposable SubscribeSafe<TSender, TValue1, TValue2>(Action<SessionMessage> onNext, Action<Exception> onError = null)
         {
-            return SubscribeSafe(onNext, onError, m => m.ValueIsTypeof<T1, T2, T3>(recursive));
+            return SubscribeSafe(onNext, onError, m => m.SenderIsTypeOf<TSender>() && m.ContentIsTypeof<TValue1, TValue2>());
+        }
+
+        /// <summary>
+        /// Disposes this object.
+        /// </summary>
+        public override void Dispose()
+        {
+            base.Dispose();
+
+            Subscriptions.ForEach(s => s.Dispose());
         }
     }
 }

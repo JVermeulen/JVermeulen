@@ -70,18 +70,28 @@ namespace JVermeulen.TCP
             }
         }
 
-        protected override void OnTcpSessionReceive(SessionMessage message)
+        protected override void OnTcpSessionStatus(SessionMessage message)
         {
-            base.OnTcpSessionReceive(message);
+            base.OnTcpSessionStatus(message);
 
-            if (message.Value is TcpMessage<T> tcpMessage && tcpMessage.IsIncoming)
+            if (message.Content is ContentMessage<T> tcpMessage && tcpMessage.IsIncoming)
             {
                 if (OptionBroadcastMessages)
-                    Broadcast(tcpMessage.Content, tcpMessage.Sender);
+                    Broadcast((T)tcpMessage.Content, tcpMessage.SenderAddress);
 
                 if (OptionEchoMessages)
-                    Echo(tcpMessage.Content, tcpMessage.Sender);
+                    Echo((T)tcpMessage.Content, tcpMessage.SenderAddress);
             }
+        }
+
+        protected override void OnReceive(SessionMessage message)
+        {
+            base.OnReceive(message);
+
+            var content = message.Find(m => m.ContentIsTypeof<string>());
+
+            if (content != null)
+                Broadcast((T)content.Content, null);
         }
 
         public void Echo(T content, string sender)
@@ -91,7 +101,7 @@ namespace JVermeulen.TCP
 
         public void Broadcast(T content, string sender)
         {
-            Send(content, s => s.IsConnected && s.RemoteAddress != sender);
+            Send(content, s => s.IsConnected && (sender == null || s.RemoteAddress != sender));
         }
 
         public override string ToString()

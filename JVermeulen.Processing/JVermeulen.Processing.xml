@@ -9,6 +9,11 @@
             Concurrent processing of messages using the Actor model.
             </summary>
         </member>
+        <member name="P:JVermeulen.Processing.Actor.Subscriptions">
+            <summary>
+            A list of subscriptions from the MessageBox(s).
+            </summary>
+        </member>
         <member name="P:JVermeulen.Processing.Actor.Inbox">
             <summary>
             The MessageBox for incoming messages.
@@ -97,31 +102,151 @@
             </summary>
             <param name="onNext">What to do with messages received from Outbox.</param>
             <param name="onError">What to do with errors occured in the onNext action.</param>
-            <param name="where">A function to test each source element for a condition.</param>
+            <param name="query">A function to test each source element for a condition.</param>
         </member>
-        <member name="M:JVermeulen.Processing.Actor.SubscribeSafe``1(System.Action{JVermeulen.Processing.SessionMessage},System.Action{System.Exception},System.Int32)">
+        <member name="M:JVermeulen.Processing.Actor.SubscribeSafe``1(System.Action{JVermeulen.Processing.SessionMessage},System.Action{System.Exception})">
             <summary>
-            Subscribe to the actor. T is the Value type to check for.
+            Subscribe to the actor. TSender is the Sender type to check for.
             </summary>
             <param name="onNext">What to do with messages received from Outbox.</param>
             <param name="onError">What to do with errors occured in the onNext action.</param>
-            <param name="recursive">When true, checks for the inner SessionMessage.</param>
         </member>
-        <member name="M:JVermeulen.Processing.Actor.SubscribeSafe``2(System.Action{JVermeulen.Processing.SessionMessage},System.Action{System.Exception},System.Int32)">
+        <member name="M:JVermeulen.Processing.Actor.SubscribeSafe``2(System.Action{JVermeulen.Processing.SessionMessage},System.Action{System.Exception})">
             <summary>
-            Subscribe to the actor. T is the Value type to check for.
+            Subscribe to the actor. TSender/TValue is the Sender/Value type to check for.
             </summary>
             <param name="onNext">What to do with messages received from Outbox.</param>
             <param name="onError">What to do with errors occured in the onNext action.</param>
-            <param name="recursive">When true, checks for the inner SessionMessage.</param>
         </member>
-        <member name="M:JVermeulen.Processing.Actor.SubscribeSafe``3(System.Action{JVermeulen.Processing.SessionMessage},System.Action{System.Exception},System.Int32)">
+        <member name="M:JVermeulen.Processing.Actor.SubscribeSafe``3(System.Action{JVermeulen.Processing.SessionMessage},System.Action{System.Exception})">
             <summary>
-            Subscribe to the actor. T is the Value type to check for.
+            Subscribe to the actor. TSender/TValue is the Sender/Value type to check for.
             </summary>
             <param name="onNext">What to do with messages received from Outbox.</param>
             <param name="onError">What to do with errors occured in the onNext action.</param>
-            <param name="recursive">When true, checks for the inner SessionMessage.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.Actor.Dispose">
+            <summary>
+            Disposes this object.
+            </summary>
+        </member>
+        <member name="T:JVermeulen.Processing.ActorGroup">
+            <summary>
+            A group of actors that distribute content messages.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.ActorGroup.Actors">
+            <summary>
+            A list of actors.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.ActorGroup.Subscriptions">
+            <summary>
+            A list of subscriptions from the MessageBox(s).
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.ActorGroup.#ctor">
+            <summary>
+            The constructor of this class.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.ActorGroup.Add(JVermeulen.Processing.Actor)">
+            <summary>
+            Add an actor.
+            </summary>
+            <param name="actor">The actor to add.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.ActorGroup.OnReceive(JVermeulen.Processing.SessionMessage)">
+            <summary>
+            A message has been received.
+            </summary>
+            <param name="message">The received message.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.ActorGroup.Dispose">
+            <summary>
+            Disposes this object.
+            </summary>
+        </member>
+        <member name="T:JVermeulen.Processing.ConsoleActor">
+            <summary>
+            Reads from and writes to the Console.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.ConsoleActor.OnReceive(JVermeulen.Processing.SessionMessage)">
+            <summary>
+            Process messages from the Inbox.
+            </summary>
+            <param name="message">The message to process.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.ConsoleActor.OnStarting">
+            <summary>
+            Sends the new status to the Outbox.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.ConsoleActor.ToString">
+            <summary>
+            A String that represents the current object.
+            </summary>
+        </member>
+        <member name="T:JVermeulen.Processing.ContentMessage`1">
+            <summary>
+            A generic content message.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.ContentMessage`1.Id">
+            <summary>
+            A unique Id for this message.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.ContentMessage`1.CreatedAt">
+            <summary>
+            The time this message has been created.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.ContentMessage`1.Content">
+            <summary>
+            The content of this message.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.ContentMessage`1.ContentType">
+            <summary>
+            The type of content.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.ContentMessage`1.SenderAddress">
+            <summary>
+            The address of the sender.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.ContentMessage`1.DestinationAddress">
+            <summary>
+            The address of the destination.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.ContentMessage`1.IsIncoming">
+            <summary>
+            When true, this message has been received.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.ContentMessage`1.IsRequest">
+            <summary>
+            When true, this message is a request to be send.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.Processing.ContentMessage`1.ContentInBytes">
+            <summary>
+            The size of the content in bytes (optional).
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.ContentMessage`1.#ctor(System.String,System.String,System.Boolean,`0,System.Nullable{System.Int32})">
+            <summary>
+            The constructor of this class.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.ContentMessage`1.ToString">
+            <summary>
+            A String that represents the current object.
+            </summary>
         </member>
         <member name="T:JVermeulen.Processing.Heartbeat">
             <summary>
@@ -266,12 +391,6 @@
             </summary>
             <param name="message">The received message.</param>
         </member>
-        <member name="M:JVermeulen.Processing.MessageBox`1.OnError(System.Exception)">
-            <summary>
-            What to do with errors occured in the action.
-            </summary>
-            <param name="ex">The occured exception.</param>
-        </member>
         <member name="M:JVermeulen.Processing.MessageBox`1.Dispose">
             <summary>
             Disposes this object.
@@ -347,6 +466,12 @@
             Stops and starts the session.
             </summary>
         </member>
+        <member name="M:JVermeulen.Processing.Session.Equals(JVermeulen.Processing.Session)">
+            <summary>
+            Returns true when the given object is same as this object.
+            </summary>
+            <param name="other">The object to validate.</param>
+        </member>
         <member name="M:JVermeulen.Processing.Session.Dispose">
             <summary>
             Disposes this object.
@@ -372,9 +497,9 @@
             The sender of this message.
             </summary>
         </member>
-        <member name="P:JVermeulen.Processing.SessionMessage.Value">
+        <member name="P:JVermeulen.Processing.SessionMessage.Content">
             <summary>
-            The value of this message.
+            The content of this message.
             </summary>
         </member>
         <member name="M:JVermeulen.Processing.SessionMessage.#ctor(JVermeulen.Processing.Session,System.Object)">
@@ -382,33 +507,71 @@
             The constructor of this class.
             </summary>
             <param name="sender">The sender of this message.</param>
-            <param name="value">The value of this message.</param>
+            <param name="content">The content of this message.</param>
         </member>
-        <member name="M:JVermeulen.Processing.SessionMessage.ValueIsTypeof(System.Collections.Generic.List{System.Type},System.Int32)">
+        <member name="P:JVermeulen.Processing.SessionMessage.IsContentMessageType">
             <summary>
-            Checks if the Value is of the given type.
+            The content is of type ContentMessage.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.SessionMessage.ContentIsTypeof(System.Collections.Generic.List{System.Type})">
+            <summary>
+            Checks if the content is of the given type.
             </summary>
             <param name="types">The types to check for.</param>
-            <param name="recursive">When true, checks for the inner SessionMessage.</param>
             <returns></returns>
         </member>
-        <member name="M:JVermeulen.Processing.SessionMessage.ValueIsTypeof``1(System.Int32)">
+        <member name="M:JVermeulen.Processing.SessionMessage.ContentIsTypeof``1">
             <summary>
-            Checks if the Value is of the given type. T is the type to check for.
+            Checks if the content is of the given type. T is the type to check for.
             </summary>
-            <param name="recursive">When true, checks for the inner SessionMessage.</param>
         </member>
-        <member name="M:JVermeulen.Processing.SessionMessage.ValueIsTypeof``2(System.Int32)">
+        <member name="M:JVermeulen.Processing.SessionMessage.ContentIsTypeof``2">
             <summary>
-            Checks if the Value is of the given type. Tx is the types to check for.
+            Checks if the content is of the given type. Tx is the types to check for.
             </summary>
-            <param name="recursive">When true, checks for the inner SessionMessage.</param>
         </member>
-        <member name="M:JVermeulen.Processing.SessionMessage.ValueIsTypeof``3(System.Int32)">
+        <member name="M:JVermeulen.Processing.SessionMessage.ContentIsTypeof``3">
             <summary>
-            Checks if the Value is of the given type. Tx is the types to check for.
+            Checks if the content is of the given type. Tx is the types to check for.
             </summary>
-            <param name="recursive">When true, checks for the inner SessionMessage.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.SessionMessage.SenderIsTypeOf``1">
+            <summary>
+            Checks if the Sender and content are of the given types.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.SessionMessage.Contains``2">
+            <summary>
+            Return true when the sender and content are of the given type, or one of the inner contents are.
+            </summary>
+            <typeparam name="TSender">The type of sender.</typeparam>
+            <typeparam name="TContent">The type of content.</typeparam>
+        </member>
+        <member name="M:JVermeulen.Processing.SessionMessage.Find``2">
+            <summary>
+            Return the inner message when the sender and content are of the given type, or one of the inner contents are.
+            </summary>
+            <typeparam name="TSender">The type of sender.</typeparam>
+            <typeparam name="TContent">The type of content.</typeparam>
+        </member>
+        <member name="M:JVermeulen.Processing.SessionMessage.Find``2(JVermeulen.Processing.SessionMessage@)">
+            <summary>
+            Return the inner message when the sender and content are of the given type, or one of the inner contents are.
+            </summary>
+            <typeparam name="TSender">The type of sender.</typeparam>
+            <typeparam name="TContent">The type of content.</typeparam>
+        </member>
+        <member name="M:JVermeulen.Processing.SessionMessage.Find(System.Func{JVermeulen.Processing.SessionMessage,System.Boolean})">
+            <summary>
+            Return true when the sender and content are of the given type, or one of the inner contents are.
+            </summary>
+            <param name="query">The where statement.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.SessionMessage.TryFindContentMessage(JVermeulen.Processing.SessionMessage@)">
+            <summary>
+            Return true when the content is of type ContentMessage, or one of the inner contents are.
+            </summary>
         </member>
         <member name="M:JVermeulen.Processing.SessionMessage.ToString">
             <summary>

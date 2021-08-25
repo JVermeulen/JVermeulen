@@ -42,7 +42,7 @@ namespace JVermeulen.TCP
             base.OnStopping();
 
             Sessions.ForEach(s => s.Stop());
-            
+
             // Wait for empty MessageQueue
             while (Outbox.NumberOfMessagesPending > 0)
                 Thread.Yield();
@@ -55,9 +55,9 @@ namespace JVermeulen.TCP
                 if (e.SocketError == SocketError.Success)
                 {
                     var session = new TcpSession<T>(e.AcceptSocket ?? e.ConnectSocket, IsServer, Encoder);
-                    session.SubscribeSafe<SessionStatus>(OnTcpSessionReceive);
-                    //session.Subscribe(OnTcpSessionReceive);
-                    session.MessageQueue.SubscribeSafe(OnTcpSessionReceive);
+                    session.SubscribeSafe<TcpSession<T>, SessionStatus>(OnTcpSessionStatus);
+                    session.SubscribeSafe<ContentMessage<T>>(OnTcpMessage);
+                    session.MessageQueue.SubscribeSafe(OnTcpSessionStatus);
                     session.Start();
 
                     Sessions.Add(session);
@@ -71,7 +71,7 @@ namespace JVermeulen.TCP
 
         public void Send(T content, TcpSession<T> session)
         {
-            var message = new TcpMessage<T>(session.LocalAddress, session.RemoteAddress, false, content, null);
+            var message = new ContentMessage<T>(session.LocalAddress, session.RemoteAddress, false, content, null);
 
             Inbox.Add(new SessionMessage(this, message));
         }
@@ -80,7 +80,7 @@ namespace JVermeulen.TCP
         {
             var sessions = Sessions.Where(where);
 
-            foreach(var session in sessions)
+            foreach (var session in sessions)
             {
                 Send(content, session);
             }
@@ -90,26 +90,40 @@ namespace JVermeulen.TCP
         {
             base.OnReceive(message);
 
-            if (message.Value is TcpMessage<T> tcpMessage)
+            if (message.Content is ContentMessage<T> tcpMessage && tcpMessage.SenderAddress == null)
             {
-                var session = Sessions.FirstOrDefault(s => s.RemoteAddress == tcpMessage.Destination);
+                if (tcpMessage.DestinationAddress != null)
+                {
+                    var session = Sessions.FirstOrDefault(s => s.RemoteAddress == tcpMessage.DestinationAddress);
 
-                session.Write(tcpMessage);
+                    session.Write(tcpMessage);
+                }
+                else
+                {
+                    foreach (var session in ConnectedSessions)
+                    {
+                        session.Write(tcpMessage);
+                    }
+                }
             }
         }
 
-        protected virtual void OnTcpSessionReceive(SessionMessage message)
+        protected virtual void OnTcpSessionStatus(SessionMessage message)
         {
             Outbox.Add(new SessionMessage(this, message));
 
-            if (message.Value is SessionStatus sessionStatus)
+            if (message.Content is SessionStatus sessionStatus)
             {
                 if (sessionStatus == SessionStatus.Started)
                     HeartbeatStatistics.NumberOfConnectedClients++;
                 else if (sessionStatus == SessionStatus.Stopped)
                     HeartbeatStatistics.NumberOfDisconnectedClients++;
             }
-            else if (message.Value is TcpMessage<T> tcpMessage)
+        }
+
+        private void OnTcpMessage(SessionMessage message)
+        {
+            if (message.Content is ContentMessage<T> tcpMessage)
             {
                 if (tcpMessage.IsIncoming)
                 {

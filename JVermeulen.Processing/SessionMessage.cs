@@ -21,74 +21,149 @@ namespace JVermeulen.Processing
         /// <summary>
         /// The sender of this message.
         /// </summary>
-        public Session Sender { get; private set; }
+        public Session Sender { get; set; }
 
         /// <summary>
-        /// The value of this message.
+        /// The content of this message.
         /// </summary>
-        public object Value { get; private set; }
+        public object Content { get; set; }
 
         /// <summary>
         /// The constructor of this class.
         /// </summary>
         /// <param name="sender">The sender of this message.</param>
-        /// <param name="value">The value of this message.</param>
-        public SessionMessage(Session sender, object value)
+        /// <param name="content">The content of this message.</param>
+        public SessionMessage(Session sender, object content)
         {
             Id = Guid.NewGuid();
             CreatedAt = DateTime.Now;
 
             Sender = sender;
-            Value = value;
+            Content = content;
         }
 
         /// <summary>
-        /// Checks if the Value is of the given type.
+        /// The content is of type ContentMessage.
+        /// </summary>
+        public bool IsContentMessageType => Content != null && Content.GetType().GetGenericTypeDefinition() == typeof(ContentMessage<>);
+
+        /// <summary>
+        /// Checks if the content is of the given type.
         /// </summary>
         /// <param name="types">The types to check for.</param>
-        /// <param name="recursive">When true, checks for the inner SessionMessage.</param>
         /// <returns></returns>
-        public bool ValueIsTypeof(List<Type> types, int recursive = 0)
+        public bool ContentIsTypeof(List<Type> types)
         {
-            if (Value == null)
+            if (Content == null)
                 return false;
-            else if (Value is SessionMessage sessionMessage && recursive > 0)
-                return sessionMessage.ValueIsTypeof(types, recursive - 1);
+            else if (Content is SessionMessage sessionMessage)
+                return sessionMessage.ContentIsTypeof(types);
             else
-                return types.Contains(Value.GetType());
+                return types.Contains(Content.GetType());
         }
 
         /// <summary>
-        /// Checks if the Value is of the given type. T is the type to check for.
+        /// Checks if the content is of the given type. T is the type to check for.
         /// </summary>
-        /// <param name="recursive">When true, checks for the inner SessionMessage.</param>
-        public bool ValueIsTypeof<T>(int recursive = 0)
+        public bool ContentIsTypeof<T1>()
         {
-            var types = new List<Type>() { typeof(T) };
+            var types = new List<Type>() { typeof(T1) };
 
-            return ValueIsTypeof(types, recursive);
+            return ContentIsTypeof(types);
         }
 
         /// <summary>
-        /// Checks if the Value is of the given type. Tx is the types to check for.
+        /// Checks if the content is of the given type. Tx is the types to check for.
         /// </summary>
-        /// <param name="recursive">When true, checks for the inner SessionMessage.</param>
-        public bool ValueIsTypeof<T1, T2>(int recursive = 0)
+        public bool ContentIsTypeof<T1, T2>()
         {
             var types = new List<Type>() { typeof(T1), typeof(T2) };
 
-            return ValueIsTypeof(types, recursive);
+            return ContentIsTypeof(types);
         }
 
         /// <summary>
-        /// Checks if the Value is of the given type. Tx is the types to check for.
+        /// Checks if the content is of the given type. Tx is the types to check for.
         /// </summary>
-        /// <param name="recursive">When true, checks for the inner SessionMessage.</param>
-        public bool ValueIsTypeof<T1, T2, T3>(int recursive = 0)
+        public bool ContentIsTypeof<T1, T2, T3>()
         {
             var types = new List<Type>() { typeof(T1), typeof(T2), typeof(T3) };
 
-            return ValueIsTypeof(types, recursive);
+            return ContentIsTypeof(types);
+        }
+
+        /// <summary>
+        /// Checks if the Sender and content are of the given types.
+        /// </summary>
+        public bool SenderIsTypeOf<T1>()
+        {
+            if (Sender == null || Content == null)
+                return false;
+            else if (Content is SessionMessage sessionMessage)
+                return sessionMessage.SenderIsTypeOf<T1>();
+            else
+                return (Sender.GetType() == typeof(T1));
+        }
+
+        /// <summary>
+        /// Return true when the sender and content are of the given type, or one of the inner contents are.
+        /// </summary>
+        /// <typeparam name="TSender">The type of sender.</typeparam>
+        /// <typeparam name="TContent">The type of content.</typeparam>
+        public bool Contains<TSender, TContent>()
+        {
+            return Find<TSender, TContent>() != null;
+        }
+
+        /// <summary>
+        /// Return the inner message when the sender and content are of the given type, or one of the inner contents are.
+        /// </summary>
+        /// <typeparam name="TSender">The type of sender.</typeparam>
+        /// <typeparam name="TContent">The type of content.</typeparam>
+        public SessionMessage Find<TSender, TContent>()
+        {
+            return Find(m => m.SenderIsTypeOf<TSender>() && m.ContentIsTypeof<TContent>());
+        }
+
+        /// <summary>
+        /// Return the inner message when the sender and content are of the given type, or one of the inner contents are.
+        /// </summary>
+        /// <typeparam name="TSender">The type of sender.</typeparam>
+        /// <typeparam name="TContent">The type of content.</typeparam>
+        public bool Find<TSender, TContent>(out SessionMessage message)
+        {
+            message = Find(m => m.SenderIsTypeOf<TSender>() && m.ContentIsTypeof<TContent>());
+
+            return message != null;
+        }
+
+        /// <summary>
+        /// Return true when the sender and content are of the given type, or one of the inner contents are.
+        /// </summary>
+        /// <param name="query">The where statement.</param>
+        public SessionMessage Find(Func<SessionMessage, bool> query)
+        {
+            if (query.Invoke(this))
+                return this;
+            else if (Content is SessionMessage sessionMessage)
+                return sessionMessage.Find(query);
+            else
+                return null;
+        }
+
+        /// <summary>
+        /// Return true when the content is of type ContentMessage, or one of the inner contents are.
+        /// </summary>
+        public bool TryFindContentMessage(out SessionMessage message)
+        {
+            message = null;
+
+            if (Content is SessionMessage sessionMessage)
+                sessionMessage.TryFindContentMessage(out message);
+            else if (IsContentMessageType)
+                message = this;
+
+            return message != null;
         }
 
         /// <summary>
@@ -96,7 +171,7 @@ namespace JVermeulen.Processing
         /// </summary>
         public override string ToString()
         {
-            return $"{Sender}: {Value}";
+            return $"{Sender}: {Content}";
         }
     }
 }

@@ -12,16 +12,22 @@ namespace JVermeulen.Tester
     {
         static void Main(string[] args)
         {
+            var group = new ActorGroup();
+            using (var console = new ConsoleActor())
             using (var server = new TcpServer<string>(XmlTcpEncoder.UTF8Encoder, 6000))
             {
+                group.Add(console);
+                console.Start();
+
                 server.OptionHeartbeatInterval = TimeSpan.FromSeconds(5);
-                server.Outbox.OptionWriteToConsole = true;
+                server.Outbox.OptionWriteToConsole = false;
                 server.OptionBroadcastMessages = true;
                 server.OptionSendHeartbeatToOutbox = true;
-                server.SubscribeSafe<SessionStatus, Heartbeat>(OnNext, OnError, 1);
-                
+                server.SubscribeSafe<TcpSession<string>>(OnTcpSession, OnError);
                 server.Start();
-                
+
+                group.Add(server);
+
                 //using (var client = new TcpClient<string>(XmlTcpEncoder.UTF8Encoder, "127.0.0.1", 6000))
                 //{
                 //    client.Queue.OptionWriteToConsole = true;
@@ -30,18 +36,24 @@ namespace JVermeulen.Tester
                 //    Task.Delay(15000).Wait();
                 //}
 
-                Task.Delay(30000).Wait();
+                Task.Delay(10000).Wait();
             }
 
             TestAppInfo();
             TestNetworkInfo();
         }
 
-        private static void OnNext(SessionMessage message)
+        private static void OnTcpSession(SessionMessage message)
         {
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine(message);
-            Console.ResetColor();
+            if (message.Find<TcpSession<string>, SessionStatus>(out SessionMessage statusMessage))
+            {
+                //
+            }
+
+            if (message.Find<TcpSession<string>, ContentMessage<string>>(out SessionMessage tcpMessage))
+            {
+                //
+            }
         }
 
         private static void OnError(Exception ex)

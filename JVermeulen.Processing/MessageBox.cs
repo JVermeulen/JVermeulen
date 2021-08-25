@@ -96,7 +96,7 @@ namespace JVermeulen.Processing
                 }
                 catch (Exception ex)
                 {
-                    catchAction(ex);
+                    catchAction?.Invoke(ex);
                 }
             };
         }
@@ -124,15 +124,6 @@ namespace JVermeulen.Processing
 
             if (OptionWriteToConsole)
                 Console.WriteLine($"{DateTime.Now:T} {message}");
-        }
-
-        /// <summary>
-        /// What to do with errors occured in the action.
-        /// </summary>
-        /// <param name="ex">The occured exception.</param>
-        private void OnError(Exception ex)
-        {
-            // Ignore and continue
         }
 
         /// <summary>

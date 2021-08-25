@@ -5,7 +5,7 @@ namespace JVermeulen.Processing
     /// <summary>
     /// A startable and stoppable session with meta info.
     /// </summary>
-    public class Session : ISession
+    public class Session : ISession, IEquatable<Session>
     {
         /// <summary>
         /// A unique Id for this session.
@@ -105,9 +105,18 @@ namespace JVermeulen.Processing
         }
 
         /// <summary>
+        /// Returns true when the given object is same as this object.
+        /// </summary>
+        /// <param name="other">The object to validate.</param>
+        public bool Equals(Session other)
+        {
+            return Id.Equals(other.Id);
+        }
+
+        /// <summary>
         /// Disposes this object.
         /// </summary>
-        public void Dispose()
+        public virtual void Dispose()
         {
             Stop();
         }
