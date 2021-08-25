@@ -130,39 +130,39 @@
             Disposes this object.
             </summary>
         </member>
-        <member name="T:JVermeulen.Processing.ActorGroup">
+        <member name="T:JVermeulen.Processing.ActorDistributor">
             <summary>
             A group of actors that distribute content messages.
             </summary>
         </member>
-        <member name="P:JVermeulen.Processing.ActorGroup.Actors">
+        <member name="P:JVermeulen.Processing.ActorDistributor.Actors">
             <summary>
             A list of actors.
             </summary>
         </member>
-        <member name="P:JVermeulen.Processing.ActorGroup.Subscriptions">
+        <member name="P:JVermeulen.Processing.ActorDistributor.Subscriptions">
             <summary>
             A list of subscriptions from the MessageBox(s).
             </summary>
         </member>
-        <member name="M:JVermeulen.Processing.ActorGroup.#ctor">
+        <member name="M:JVermeulen.Processing.ActorDistributor.#ctor">
             <summary>
             The constructor of this class.
             </summary>
         </member>
-        <member name="M:JVermeulen.Processing.ActorGroup.Add(JVermeulen.Processing.Actor)">
+        <member name="M:JVermeulen.Processing.ActorDistributor.Add(JVermeulen.Processing.Actor)">
             <summary>
             Add an actor.
             </summary>
             <param name="actor">The actor to add.</param>
         </member>
-        <member name="M:JVermeulen.Processing.ActorGroup.OnReceive(JVermeulen.Processing.SessionMessage)">
+        <member name="M:JVermeulen.Processing.ActorDistributor.OnReceive(JVermeulen.Processing.SessionMessage)">
             <summary>
             A message has been received.
             </summary>
             <param name="message">The received message.</param>
         </member>
-        <member name="M:JVermeulen.Processing.ActorGroup.Dispose">
+        <member name="M:JVermeulen.Processing.ActorDistributor.Dispose">
             <summary>
             Disposes this object.
             </summary>

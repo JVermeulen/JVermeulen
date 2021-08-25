@@ -180,10 +180,10 @@ namespace JVermeulen.TCP
                 StoppedAt = StoppedAt != default ? StoppedAt : DateTime.Now,
                 NumberOfConnectedClients = Sessions.Count(),
                 NumberOfDisconnectedClients = Sessions.Count(s => !s.IsConnected),
-                NumberOfBytesReceived = Sessions.Sum(s => s.NumberOfBytesReceived.Value),
-                NumberOfBytesSent = Sessions.Sum(s => s.NumberOfBytesSent.Value),
-                NumberOfMessagesReceived = Sessions.Sum(s => s.NumberOfMessagesReceived.Value),
-                NumberOfMessagesSent = Sessions.Sum(s => s.NumberOfMessagesSent.Value),
+                NumberOfBytesReceived = Sessions.Sum(s => s.NumberOfBytesReceived),
+                NumberOfBytesSent = Sessions.Sum(s => s.NumberOfBytesSent),
+                NumberOfMessagesReceived = Sessions.Sum(s => s.NumberOfMessagesReceived),
+                NumberOfMessagesSent = Sessions.Sum(s => s.NumberOfMessagesSent),
             };
         }
     }

@@ -27,7 +27,6 @@ namespace JVermeulen.Processing
         /// </summary>
         public IObservable<T> Observer => Messages.ObserveOn(Scheduler).AsObservable();
 
-
         /// <summary>
         /// The number of processed messages from the queue.
         /// </summary>

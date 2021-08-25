@@ -1,20 +1,35 @@
 ﻿using JVermeulen.Processing;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
-using System.Reactive.Concurrency;
-using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace JVermeulen.TCP
 {
     public class TcpSession<T> : Actor
     {
-        public ValueCounter NumberOfBytesReceived { get; set; }
-        public ValueCounter NumberOfBytesSent { get; set; }
-        public ValueCounter NumberOfMessagesReceived { get; set; }
-        public ValueCounter NumberOfMessagesSent { get; set; }
+        /// <summary>
+        /// The number of bytes received.
+        /// </summary>
+        public long NumberOfBytesReceived => Interlocked.Read(ref _NumberOfBytesReceived);
+        private long _NumberOfBytesReceived;
+
+        /// <summary>
+        /// The number of bytes sent.
+        /// </summary>
+        public long NumberOfBytesSent => Interlocked.Read(ref _NumberOfBytesSent);
+        private long _NumberOfBytesSent;
+
+        /// <summary>
+        /// The number of messages received.
+        /// </summary>
+        public long NumberOfMessagesReceived => Interlocked.Read(ref _NumberOfMessagesReceived);
+        private long _NumberOfMessagesReceived;
+
+        /// <summary>
+        /// The number of messages sent.
+        /// </summary>
+        public long NumberOfMessagesSent => Interlocked.Read(ref _NumberOfMessagesSent);
+        private long _NumberOfMessagesSent;
 
         public ITcpEncoder<T> Encoder { get; private set; }
         public Socket Socket { get; private set; }
@@ -39,11 +54,6 @@ namespace JVermeulen.TCP
 
             LocalAddress = Socket.LocalEndPoint.ToString();
             RemoteAddress = Socket.RemoteEndPoint.ToString();
-
-            NumberOfBytesReceived = new ValueCounter();
-            NumberOfBytesSent = new ValueCounter();
-            NumberOfMessagesReceived = new ValueCounter();
-            NumberOfMessagesSent = new ValueCounter();
 
             ReceiveBuffer = new TcpBuffer();
 
@@ -114,8 +124,10 @@ namespace JVermeulen.TCP
 
         private void OnSent(SocketAsyncEventArgs e)
         {
-            NumberOfBytesSent.Add(e.BytesTransferred);
-            NumberOfMessagesSent.Increment();
+            int bytesSent = e.BytesTransferred;
+
+            Interlocked.Add(ref _NumberOfBytesSent, bytesSent);
+            Interlocked.Increment(ref _NumberOfMessagesSent);
 
             var message = (ContentMessage<T>)e.UserToken;
             message.ContentInBytes = e.BytesTransferred;
@@ -164,8 +176,10 @@ namespace JVermeulen.TCP
 
                         while (ReceiveBuffer.Data.Length > 0 && Encoder.TryFindContent(ReceiveBuffer.Data, out T content, out byte[] nextContent))
                         {
-                            NumberOfBytesReceived.Add(ReceiveBuffer.Data.Length - nextContent.Length);
-                            NumberOfMessagesReceived.Increment();
+                            int bytesReceived = ReceiveBuffer.Data.Length - nextContent.Length;
+
+                            Interlocked.Add(ref _NumberOfBytesReceived, bytesReceived);
+                            Interlocked.Increment(ref _NumberOfMessagesReceived);
 
                             var message = new ContentMessage<T>(RemoteAddress, LocalAddress, true, false, content, e.BytesTransferred);
                             MessageQueue.Add(new SessionMessage(this, message));
