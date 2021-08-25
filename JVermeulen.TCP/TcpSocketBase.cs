@@ -71,7 +71,7 @@ namespace JVermeulen.TCP
 
         public void Send(T content, TcpSession<T> session)
         {
-            var message = new ContentMessage<T>(session.LocalAddress, session.RemoteAddress, false, content, null);
+            var message = new ContentMessage<T>(session.LocalAddress, session.RemoteAddress, false, false, content, null);
 
             Inbox.Add(new SessionMessage(this, message));
         }
@@ -90,21 +90,21 @@ namespace JVermeulen.TCP
         {
             base.OnReceive(message);
 
-            if (message.Content is ContentMessage<T> tcpMessage && tcpMessage.SenderAddress == null)
+            if (message.Content is ContentMessage<T> tcpMessage && tcpMessage.IsRequest)
             {
-                if (tcpMessage.DestinationAddress != null)
-                {
-                    var session = Sessions.FirstOrDefault(s => s.RemoteAddress == tcpMessage.DestinationAddress);
+                Send(tcpMessage, s => s.IsConnected && (tcpMessage.DestinationAddress == null || s.RemoteAddress == tcpMessage.DestinationAddress));
+            }
+        }
 
-                    session.Write(tcpMessage);
-                }
-                else
-                {
-                    foreach (var session in ConnectedSessions)
-                    {
-                        session.Write(tcpMessage);
-                    }
-                }
+        private void Send(ContentMessage<T> message, Func<TcpSession<T>, bool> query)
+        {
+            var sessions = Sessions.Where(query);
+
+            foreach (var session in sessions)
+            {
+                var newMessage = (ContentMessage<T>)message.Clone();
+
+                session.Send(newMessage);
             }
         }
 

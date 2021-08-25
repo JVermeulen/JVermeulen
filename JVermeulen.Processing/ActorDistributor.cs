@@ -9,7 +9,7 @@ namespace JVermeulen.Processing
     /// <summary>
     /// A group of actors that distribute content messages.
     /// </summary>
-    public class ActorGroup : IDisposable
+    public class ActorDistributor : IDisposable
     {
         /// <summary>
         /// A list of actors.
@@ -24,7 +24,7 @@ namespace JVermeulen.Processing
         /// <summary>
         /// The constructor of this class.
         /// </summary>
-        public ActorGroup()
+        public ActorDistributor()
         {
             Actors = new List<Actor>();
             Subscriptions = new List<IDisposable>();
@@ -36,7 +36,9 @@ namespace JVermeulen.Processing
         /// <param name="actor">The actor to add.</param>
         public void Add(Actor actor)
         {
-            Subscriptions.Add(actor.Outbox.SubscribeSafe(OnReceive));
+            var subscription = actor.Outbox.SubscribeSafe(OnReceive);
+
+            Subscriptions.Add(subscription);
 
             Actors.Add(actor);
         }
@@ -53,7 +55,9 @@ namespace JVermeulen.Processing
 
                 foreach (var actors in destinations)
                 {
-                    actors.Inbox.Add(message);
+                    var newMessage = (SessionMessage)contentMessage.Clone();
+
+                    actors.Inbox.Add(newMessage);
                 }
             }
         }

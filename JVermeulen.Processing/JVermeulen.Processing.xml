@@ -238,7 +238,7 @@
             The size of the content in bytes (optional).
             </summary>
         </member>
-        <member name="M:JVermeulen.Processing.ContentMessage`1.#ctor(System.String,System.String,System.Boolean,`0,System.Nullable{System.Int32})">
+        <member name="M:JVermeulen.Processing.ContentMessage`1.#ctor(System.String,System.String,System.Boolean,System.Boolean,`0,System.Nullable{System.Int32})">
             <summary>
             The constructor of this class.
             </summary>
@@ -246,6 +246,11 @@
         <member name="M:JVermeulen.Processing.ContentMessage`1.ToString">
             <summary>
             A String that represents the current object.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.ContentMessage`1.Clone">
+            <summary>
+            Returns a new object with the same values.
             </summary>
         </member>
         <member name="T:JVermeulen.Processing.Heartbeat">
@@ -576,6 +581,11 @@
         <member name="M:JVermeulen.Processing.SessionMessage.ToString">
             <summary>
             A String that represents the current object.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.Processing.SessionMessage.Clone">
+            <summary>
+            Returns a new object with the same values.
             </summary>
         </member>
         <member name="T:JVermeulen.Processing.SessionStatus">

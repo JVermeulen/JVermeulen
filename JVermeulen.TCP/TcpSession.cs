@@ -86,31 +86,15 @@ namespace JVermeulen.TCP
             }
         }
 
-        //public void Write(T content)
-        //{
-        //    try
-        //    {
-        //        if (IsConnected)
-        //        {
-        //            var data = Encoder.Encode(content);
-
-        //            SendEventArgs.SetBuffer(data);
-        //            SendEventArgs.UserToken = content;
-
-        //            if (!Socket.SendAsync(SendEventArgs))
-        //                OnSend(SendEventArgs);
-        //        }
-        //    }
-        //    catch
-        //    {
-        //        Stop();
-        //    }
-        //}
-
-        public void Write(ContentMessage<T> message)
+        public void Send(ContentMessage<T> message)
         {
             try
             {
+                message.IsIncoming = false;
+                message.IsRequest = false;
+                message.SenderAddress = LocalAddress;
+                message.DestinationAddress = RemoteAddress;
+
                 if (IsConnected)
                 {
                     var data = Encoder.Encode((T)message.Content);
@@ -119,7 +103,7 @@ namespace JVermeulen.TCP
                     SendEventArgs.UserToken = message;
 
                     if (!Socket.SendAsync(SendEventArgs))
-                        OnSend(SendEventArgs);
+                        OnSent(SendEventArgs);
                 }
             }
             catch
@@ -128,7 +112,7 @@ namespace JVermeulen.TCP
             }
         }
 
-        private void OnSend(SocketAsyncEventArgs e)
+        private void OnSent(SocketAsyncEventArgs e)
         {
             NumberOfBytesSent.Add(e.BytesTransferred);
             NumberOfMessagesSent.Increment();
@@ -183,7 +167,7 @@ namespace JVermeulen.TCP
                             NumberOfBytesReceived.Add(ReceiveBuffer.Data.Length - nextContent.Length);
                             NumberOfMessagesReceived.Increment();
 
-                            var message = new ContentMessage<T>(RemoteAddress, LocalAddress, true, content, e.BytesTransferred);
+                            var message = new ContentMessage<T>(RemoteAddress, LocalAddress, true, false, content, e.BytesTransferred);
                             MessageQueue.Add(new SessionMessage(this, message));
 
                             ReceiveBuffer.Data = nextContent;

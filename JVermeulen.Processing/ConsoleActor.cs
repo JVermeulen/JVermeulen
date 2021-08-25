@@ -46,13 +46,13 @@ namespace JVermeulen.Processing
 
         private void OnRead(string value)
         {
-            var message = new ContentMessage<string>(null, null, true, value);
+            var message = new ContentMessage<string>(null, null, true, true, value);
             Outbox.Add(new SessionMessage(this, message));
 
             Read();
         }
 
-        private async Task<string> GetInputAsync()
+        private static async Task<string> GetInputAsync()
         {
             return await Task.Run(() => Console.ReadLine());
         }

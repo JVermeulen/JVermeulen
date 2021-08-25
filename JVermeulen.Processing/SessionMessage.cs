@@ -6,7 +6,7 @@ namespace JVermeulen.Processing
     /// <summary>
     /// A generic session message.
     /// </summary>
-    public class SessionMessage
+    public class SessionMessage : ICloneable
     {
         /// <summary>
         /// A unique Id for this message.
@@ -172,6 +172,14 @@ namespace JVermeulen.Processing
         public override string ToString()
         {
             return $"{Sender}: {Content}";
+        }
+
+        /// <summary>
+        /// Returns a new object with the same values.
+        /// </summary>
+        public object Clone()
+        {
+            return new SessionMessage(Sender, Content is ICloneable cloneable ? cloneable.Clone() : Content);
         }
     }
 }

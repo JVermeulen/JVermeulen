@@ -12,11 +12,11 @@ namespace JVermeulen.Tester
     {
         static void Main(string[] args)
         {
-            var group = new ActorGroup();
+            var distributor = new ActorDistributor();
             using (var console = new ConsoleActor())
             using (var server = new TcpServer<string>(XmlTcpEncoder.UTF8Encoder, 6000))
             {
-                group.Add(console);
+                distributor.Add(console);
                 console.Start();
 
                 server.OptionHeartbeatInterval = TimeSpan.FromSeconds(5);
@@ -26,7 +26,7 @@ namespace JVermeulen.Tester
                 server.SubscribeSafe<TcpSession<string>>(OnTcpSession, OnError);
                 server.Start();
 
-                group.Add(server);
+                distributor.Add(server);
 
                 //using (var client = new TcpClient<string>(XmlTcpEncoder.UTF8Encoder, "127.0.0.1", 6000))
                 //{
@@ -36,7 +36,7 @@ namespace JVermeulen.Tester
                 //    Task.Delay(15000).Wait();
                 //}
 
-                Task.Delay(10000).Wait();
+                Task.Delay(60000).Wait();
             }
 
             TestAppInfo();

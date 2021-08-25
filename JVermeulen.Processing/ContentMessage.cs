@@ -5,7 +5,7 @@ namespace JVermeulen.Processing
     /// <summary>
     /// A generic content message.
     /// </summary>
-    public class ContentMessage<T>
+    public class ContentMessage<T> : ICloneable
     {
         /// <summary>
         /// A unique Id for this message.
@@ -55,7 +55,7 @@ namespace JVermeulen.Processing
         /// <summary>
         /// The constructor of this class.
         /// </summary>
-        public ContentMessage(string senderAddress, string destinationAddress, bool isIncoming, T content, int? contentInBytes = null)
+        public ContentMessage(string senderAddress, string destinationAddress, bool isIncoming, bool isRequest, T content, int? contentInBytes = null)
         {
             Id = Guid.NewGuid();
             CreatedAt = DateTime.Now;
@@ -63,6 +63,7 @@ namespace JVermeulen.Processing
             SenderAddress = senderAddress;
             DestinationAddress = destinationAddress;
             IsIncoming = isIncoming;
+            IsRequest = isRequest;
             Content = content;
             ContentInBytes = contentInBytes;
         }
@@ -76,6 +77,14 @@ namespace JVermeulen.Processing
             var size = ContentInBytes.HasValue ? $" ({ContentInBytes} bytes)" : "";
 
             return $"TCP Message {direction}{size}";
+        }
+
+        /// <summary>
+        /// Returns a new object with the same values.
+        /// </summary>
+        public object Clone()
+        {
+            return new ContentMessage<T>(SenderAddress, DestinationAddress, IsIncoming, IsRequest, Content, ContentInBytes);
         }
     }
 }
