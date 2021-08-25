@@ -49,15 +49,13 @@ namespace JVermeulen.Processing
         /// <param name="message">The received message.</param>
         private void OnReceive(SessionMessage message)
         {
-            if (message.TryFindContentMessage(out SessionMessage contentMessage))
+            if (message.ContentIsTypeof<string, SessionMessage>())
             {
                 var destinations = Actors.Where(a => a != message.Sender);
 
                 foreach (var actors in destinations)
                 {
-                    var newMessage = (SessionMessage)contentMessage.Clone();
-
-                    actors.Inbox.Add(newMessage);
+                    actors.Inbox.Add(message);
                 }
             }
         }

@@ -45,7 +45,7 @@ namespace JVermeulen.Processing
         /// <summary>
         /// The content is of type ContentMessage.
         /// </summary>
-        public bool IsContentMessageType => Content != null && Content.GetType().GetGenericTypeDefinition() == typeof(ContentMessage<>);
+        public bool IsContentMessageType => Content != null && Content.GetType().IsGenericType && Content.GetType().GetGenericTypeDefinition() == typeof(ContentMessage<>);
 
         /// <summary>
         /// Checks if the content is of the given type.
@@ -70,6 +70,25 @@ namespace JVermeulen.Processing
             var types = new List<Type>() { typeof(T1) };
 
             return ContentIsTypeof(types);
+        }
+
+        /// <summary>
+        /// Checks if the content is of the given type. T is the type to check for.
+        /// </summary>
+        public bool ContentIsTypeof<T1>(out T1 content)
+        {
+            if (ContentIsTypeof<T1>())
+            {
+                content = (T1)Content;
+
+                return true;
+            }
+            else
+            {
+                content = default;
+
+                return false;
+            }
         }
 
         /// <summary>

@@ -4,9 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace JVermeulen.TCP
 {
@@ -18,7 +16,6 @@ namespace JVermeulen.TCP
         public string ServerAddress { get; private set; }
         public ITcpEncoder<T> Encoder { get; private set; }
         public List<TcpSession<T>> Sessions { get; private set; }
-        public List<TcpSession<T>> ConnectedSessions => Sessions.Where(s => s.Socket.Connected).ToList();
 
         private TcpStatistics HeartbeatStatistics { get; set; }
 
@@ -90,7 +87,13 @@ namespace JVermeulen.TCP
         {
             base.OnReceive(message);
 
-            if (message.Content is ContentMessage<T> tcpMessage && tcpMessage.IsRequest)
+            if (message.ContentIsTypeof(out T content))
+            {
+                var contentMessage = new ContentMessage<T>(null, null, false, true, content);
+
+                Send(contentMessage, s => s.IsConnected);
+            }
+            else if (message.Content is ContentMessage<T> tcpMessage && tcpMessage.IsRequest)
             {
                 Send(tcpMessage, s => s.IsConnected && (tcpMessage.DestinationAddress == null || s.RemoteAddress == tcpMessage.DestinationAddress));
             }

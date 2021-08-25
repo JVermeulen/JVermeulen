@@ -46,8 +46,7 @@ namespace JVermeulen.Processing
 
         private void OnRead(string value)
         {
-            var message = new ContentMessage<string>(null, null, true, true, value);
-            Outbox.Add(new SessionMessage(this, message));
+            Outbox.Add(new SessionMessage(this, value));
 
             Read();
         }

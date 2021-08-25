@@ -3,7 +3,6 @@ using JVermeulen.Processing;
 using JVermeulen.TCP;
 using JVermeulen.TCP.Encoders;
 using System;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 
 namespace JVermeulen.Tester
@@ -13,13 +12,14 @@ namespace JVermeulen.Tester
         static void Main(string[] args)
         {
             var distributor = new ActorDistributor();
+
             using (var console = new ConsoleActor())
             using (var server = new TcpServer<string>(XmlTcpEncoder.UTF8Encoder, 6000))
             {
                 distributor.Add(console);
                 console.Start();
 
-                server.OptionHeartbeatInterval = TimeSpan.FromSeconds(5);
+                server.OptionHeartbeatInterval = TimeSpan.FromSeconds(60);
                 server.Outbox.OptionWriteToConsole = false;
                 server.OptionBroadcastMessages = true;
                 server.OptionSendHeartbeatToOutbox = true;

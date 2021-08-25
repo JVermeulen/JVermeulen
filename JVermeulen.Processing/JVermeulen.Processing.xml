@@ -531,6 +531,11 @@
             Checks if the content is of the given type. T is the type to check for.
             </summary>
         </member>
+        <member name="M:JVermeulen.Processing.SessionMessage.ContentIsTypeof``1(``0@)">
+            <summary>
+            Checks if the content is of the given type. T is the type to check for.
+            </summary>
+        </member>
         <member name="M:JVermeulen.Processing.SessionMessage.ContentIsTypeof``2">
             <summary>
             Checks if the content is of the given type. Tx is the types to check for.
