@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace JVermeulen.Processing
 {
@@ -9,9 +10,14 @@ namespace JVermeulen.Processing
     public class SessionMessage : ICloneable
     {
         /// <summary>
+        /// A global unique Id.
+        /// </summary>
+        private static long GlobalId;
+
+        /// <summary>
         /// A unique Id for this message.
         /// </summary>
-        public Guid Id { get; private set; }
+        public long Id { get; private set; }
 
         /// <summary>
         /// The time this message has been created.
@@ -35,7 +41,7 @@ namespace JVermeulen.Processing
         /// <param name="content">The content of this message.</param>
         public SessionMessage(Session sender, object content)
         {
-            Id = Guid.NewGuid();
+            Id = Interlocked.Increment(ref GlobalId);
             CreatedAt = DateTime.Now;
 
             Sender = sender;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 
 namespace JVermeulen.Processing
 {
@@ -8,9 +9,14 @@ namespace JVermeulen.Processing
     public class Session : ISession, IEquatable<Session>
     {
         /// <summary>
+        /// A global unique Id.
+        /// </summary>
+        private static long GlobalId;
+
+        /// <summary>
         /// A unique Id for this session.
         /// </summary>
-        public Guid Id { get; private set; }
+        public long Id { get; private set; }
 
         /// <summary>
         /// The current status of this session.
@@ -37,7 +43,7 @@ namespace JVermeulen.Processing
         /// </summary>
         public Session()
         {
-            Id = Guid.NewGuid();
+            Id = Interlocked.Increment(ref GlobalId);
         }
 
         /// <summary>
@@ -107,10 +113,19 @@ namespace JVermeulen.Processing
         /// <summary>
         /// Returns true when the given object is same as this object.
         /// </summary>
-        /// <param name="other">The object to validate.</param>
-        public bool Equals(Session other)
+        /// <param name="obj">The object to validate.</param>
+        public override bool Equals(object obj)
         {
-            return Id.Equals(other.Id);
+            return Equals(obj as Session);
+        }
+
+        /// <summary>
+        /// Returns true when the given object is same as this object.
+        /// </summary>
+        /// <param name="obj">The object to validate.</param>
+        public bool Equals(Session obj)
+        {
+            return Id == obj.Id;
         }
 
         /// <summary>

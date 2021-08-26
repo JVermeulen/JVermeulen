@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 
 namespace JVermeulen.Processing
 {
@@ -8,9 +9,14 @@ namespace JVermeulen.Processing
     public class ContentMessage<T> : ICloneable
     {
         /// <summary>
+        /// A global unique Id.
+        /// </summary>
+        private static long GlobalId;
+
+        /// <summary>
         /// A unique Id for this message.
         /// </summary>
-        public Guid Id { get; private set; }
+        public long Id { get; private set; }
 
         /// <summary>
         /// The time this message has been created.
@@ -57,7 +63,7 @@ namespace JVermeulen.Processing
         /// </summary>
         public ContentMessage(string senderAddress, string destinationAddress, bool isIncoming, bool isRequest, T content, int? contentInBytes = null)
         {
-            Id = Guid.NewGuid();
+            Id = Interlocked.Increment(ref GlobalId);
             CreatedAt = DateTime.Now;
 
             SenderAddress = senderAddress;
@@ -76,7 +82,7 @@ namespace JVermeulen.Processing
             var direction = IsIncoming ? "received" : "sent";
             var size = ContentInBytes.HasValue ? $" ({ContentInBytes} bytes)" : "";
 
-            return $"TCP Message {direction}{size}";
+            return $"Message ({Id}) {direction}{size}";
         }
 
         /// <summary>

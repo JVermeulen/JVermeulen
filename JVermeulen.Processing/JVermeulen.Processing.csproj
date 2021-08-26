@@ -9,6 +9,8 @@
     <Description>Contains session based classes using the Actor pattern with subscriptions.</Description>
     <Company>Joost Vermeulen</Company>
     <Authors>Joost Vermeulen</Authors>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
+    <FileVersion>1.0.1.0</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
