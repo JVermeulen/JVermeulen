@@ -1,5 +1,8 @@
 ﻿using JVermeulen.Processing;
 using System;
+using System.Buffers;
+using System.IO;
+using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
 
@@ -39,10 +42,12 @@ namespace JVermeulen.TCP
         public bool IsConnected => Socket.Connected;
 
         private TcpBuffer ReceiveBuffer { get; set; }
+        private TcpBuffer SendBuffer { get; set; }
+
         private SocketAsyncEventArgs ReceiveEventArgs { get; set; }
         private SocketAsyncEventArgs SendEventArgs { get; set; }
 
-        public MessageBox<SessionMessage> MessageQueue { get; private set; }
+        public MessageBox<SessionMessage> MessageBox { get; private set; }
 
         public bool OptionPollOnHeartbeat { get; set; } = true;
 
@@ -56,13 +61,19 @@ namespace JVermeulen.TCP
             RemoteAddress = Socket.RemoteEndPoint.ToString();
 
             ReceiveBuffer = new TcpBuffer();
+            SendBuffer = new TcpBuffer();
 
+            var receiveBuffer = ArrayPool<byte>.Shared.Rent(1024);
             ReceiveEventArgs = new SocketAsyncEventArgs();
+            ReceiveEventArgs.SetBuffer(receiveBuffer, 0, receiveBuffer.Length);
             ReceiveEventArgs.Completed += OnAsyncCompleted;
+
+            var sendBuffer = ArrayPool<byte>.Shared.Rent(1024);
             SendEventArgs = new SocketAsyncEventArgs();
+            SendEventArgs.SetBuffer(sendBuffer, 0, sendBuffer.Length);
             SendEventArgs.Completed += OnAsyncCompleted;
 
-            MessageQueue = new MessageBox<SessionMessage>();
+            MessageBox = new MessageBox<SessionMessage>();
         }
 
         protected override void OnHeartbeat(Heartbeat heartbeat)
@@ -116,9 +127,9 @@ namespace JVermeulen.TCP
                         OnSent(SendEventArgs);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                Stop();
+                OnExceptionOccured(ex);
             }
         }
 
@@ -132,7 +143,7 @@ namespace JVermeulen.TCP
             var message = (ContentMessage<T>)e.UserToken;
             message.ContentInBytes = e.BytesTransferred;
 
-            MessageQueue.Add(new(this, message));
+            MessageBox.Add(new(this, message));
         }
 
         protected override void OnStarting()
@@ -157,8 +168,6 @@ namespace JVermeulen.TCP
         {
             if (Socket.Connected)
             {
-                ReceiveEventArgs.SetBuffer(ReceiveBuffer.Buffer);
-
                 if (!Socket.ReceiveAsync(ReceiveEventArgs))
                     OnReceived(ReceiveEventArgs);
             }
@@ -172,19 +181,17 @@ namespace JVermeulen.TCP
                 {
                     if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
                     {
-                        ReceiveBuffer.AddBufferToData(e.BytesTransferred);
+                        ReceiveBuffer.Add(e.Buffer, e.Offset, e.BytesTransferred);
 
-                        while (ReceiveBuffer.Data.Length > 0 && Encoder.TryFindContent(ReceiveBuffer.Data, out T content, out byte[] nextContent))
+                        while (Encoder.TryFindContent(ReceiveBuffer, out T content, out int numberOfBytes))
                         {
-                            int bytesReceived = ReceiveBuffer.Data.Length - nextContent.Length;
+                            ReceiveBuffer.Remove(numberOfBytes);
 
-                            Interlocked.Add(ref _NumberOfBytesReceived, bytesReceived);
+                            Interlocked.Add(ref _NumberOfBytesReceived, numberOfBytes);
                             Interlocked.Increment(ref _NumberOfMessagesReceived);
 
-                            var message = new ContentMessage<T>(RemoteAddress, LocalAddress, true, false, content, e.BytesTransferred);
-                            MessageQueue.Add(new SessionMessage(this, message));
-
-                            ReceiveBuffer.Data = nextContent;
+                            var message = new ContentMessage<T>(RemoteAddress, LocalAddress, true, false, content, numberOfBytes - Encoder.DelimeterNettoLength);
+                            MessageBox.Add(new SessionMessage(this, message));
                         }
 
                         WaitForReceive();
@@ -195,10 +202,26 @@ namespace JVermeulen.TCP
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                Stop();
+                OnExceptionOccured(ex);
             }
+        }
+
+        private void OnExceptionOccured(Exception ex)
+        {
+            TcpException exception;
+            
+            if (ex is SocketException socketException)
+                exception = new TcpException("Unable to continue TCP session because of an socket error.", ex, socketException.SocketErrorCode);
+            else
+                exception = new TcpException("Unable to contintue TCP session.", ex);
+
+            var message = new SessionMessage(this, exception);
+
+            Outbox.Add(message);
+
+            Stop();
         }
 
         private void OnAsyncCompleted(object sender, SocketAsyncEventArgs e)
@@ -216,6 +239,14 @@ namespace JVermeulen.TCP
                 return $"TCP Session ({LocalAddress} <= {RemoteAddress})";
             else
                 return $"TCP Session ({LocalAddress} => {RemoteAddress})";
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+
+            ArrayPool<byte>.Shared.Return(ReceiveEventArgs.Buffer);
+            ArrayPool<byte>.Shared.Return(SendEventArgs.Buffer);
         }
     }
 }

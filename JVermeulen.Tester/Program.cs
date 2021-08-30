@@ -3,6 +3,7 @@ using JVermeulen.Processing;
 using JVermeulen.TCP;
 using JVermeulen.TCP.Encoders;
 using System;
+using System.Buffers;
 using System.Threading.Tasks;
 
 namespace JVermeulen.Tester

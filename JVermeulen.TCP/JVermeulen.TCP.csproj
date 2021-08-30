@@ -1,8 +1,21 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="V3\**" />
+    <Compile Remove="V4\**" />
+    <EmbeddedResource Remove="V3\**" />
+    <EmbeddedResource Remove="V4\**" />
+    <None Remove="V3\**" />
+    <None Remove="V4\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="5.0.9" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\JVermeulen.App\JVermeulen.App.csproj" />

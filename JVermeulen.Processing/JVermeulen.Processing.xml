@@ -193,6 +193,11 @@
             A generic content message.
             </summary>
         </member>
+        <member name="F:JVermeulen.Processing.ContentMessage`1.GlobalId">
+            <summary>
+            A global unique Id.
+            </summary>
+        </member>
         <member name="P:JVermeulen.Processing.ContentMessage`1.Id">
             <summary>
             A unique Id for this message.
@@ -406,6 +411,11 @@
             A startable and stoppable session with meta info.
             </summary>
         </member>
+        <member name="F:JVermeulen.Processing.Session.GlobalId">
+            <summary>
+            A global unique Id.
+            </summary>
+        </member>
         <member name="P:JVermeulen.Processing.Session.Id">
             <summary>
             A unique Id for this session.
@@ -471,11 +481,22 @@
             Stops and starts the session.
             </summary>
         </member>
+        <member name="M:JVermeulen.Processing.Session.Equals(System.Object)">
+            <summary>
+            Returns true when the given object is same as this object.
+            </summary>
+            <param name="obj">The object to validate.</param>
+        </member>
         <member name="M:JVermeulen.Processing.Session.Equals(JVermeulen.Processing.Session)">
             <summary>
             Returns true when the given object is same as this object.
             </summary>
-            <param name="other">The object to validate.</param>
+            <param name="obj">The object to validate.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.Session.GetHashCode">
+            <summary>
+            Returns the hash code.
+            </summary>
         </member>
         <member name="M:JVermeulen.Processing.Session.Dispose">
             <summary>
@@ -485,6 +506,11 @@
         <member name="T:JVermeulen.Processing.SessionMessage">
             <summary>
             A generic session message.
+            </summary>
+        </member>
+        <member name="F:JVermeulen.Processing.SessionMessage.GlobalId">
+            <summary>
+            A global unique Id.
             </summary>
         </member>
         <member name="P:JVermeulen.Processing.SessionMessage.Id">

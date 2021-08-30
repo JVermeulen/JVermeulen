@@ -15,6 +15,7 @@ namespace JVermeulen.TCP.Encoders
         public string Delimeter { get; private set; }
         public bool DelimeterIsPartOfMessage { get; private set; }
         private byte[] DelimeterBytes { get; set; }
+        public int DelimeterNettoLength => DelimeterIsPartOfMessage ? 0 : DelimeterBytes.Length;
 
         public StringTcpEncoder(Encoding encoding, string delimeter, bool delimeterIsPartOfMessage = false)
         {
@@ -100,6 +101,11 @@ namespace JVermeulen.TCP.Encoders
 
                 return true;
             }
+        }
+
+        public bool TryFindContent(TcpBuffer buffer, out string content, out int numberOfBytes)
+        {
+            throw new NotImplementedException();
         }
     }
 }

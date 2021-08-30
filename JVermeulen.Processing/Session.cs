@@ -129,6 +129,14 @@ namespace JVermeulen.Processing
         }
 
         /// <summary>
+        /// Returns the hash code.
+        /// </summary>
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+
+        /// <summary>
         /// Disposes this object.
         /// </summary>
         public virtual void Dispose()

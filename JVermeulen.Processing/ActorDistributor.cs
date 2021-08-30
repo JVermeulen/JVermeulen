@@ -49,7 +49,7 @@ namespace JVermeulen.Processing
         /// <param name="message">The received message.</param>
         private void OnReceive(SessionMessage message)
         {
-            if (message.ContentIsTypeof<string, SessionMessage>())
+            if (message.ContentIsTypeof<SessionStatus, ContentMessage<string>, SessionMessage>())
             {
                 var destinations = Actors.Where(a => a != message.Sender);
 

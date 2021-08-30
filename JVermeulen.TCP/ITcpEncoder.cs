@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace JVermeulen.TCP
 {
@@ -11,6 +7,10 @@ namespace JVermeulen.TCP
         byte[] Encode(T value);
         T Decode(byte[] data);
 
+        int DelimeterNettoLength { get; }
+
         bool TryFindContent(byte[] buffer, out T content, out byte[] nextContent);
+
+        bool TryFindContent(TcpBuffer buffer, out T content, out int numberOfBytes);
     }
 }

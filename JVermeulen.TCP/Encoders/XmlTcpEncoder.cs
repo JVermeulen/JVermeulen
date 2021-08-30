@@ -10,6 +10,7 @@ namespace JVermeulen.TCP.Encoders
     public class XmlTcpEncoder : ITcpEncoder<string>
     {
         public static XmlTcpEncoder UTF8Encoder = new XmlTcpEncoder(Encoding.UTF8);
+        public int DelimeterNettoLength => 0;
 
         public Encoding Encoding { get; private set; }
 
@@ -26,6 +27,31 @@ namespace JVermeulen.TCP.Encoders
         public string Decode(byte[] data)
         {
             return Encoding.GetString(data);
+        }
+
+        public bool TryFindContent(TcpBuffer buffer, out string content, out int numberOfBytes)
+        {
+            content = string.Empty;
+            numberOfBytes = 0;
+
+            try
+            {
+                var text = Encoding.GetString(buffer.Data.Span);
+
+                if (TryFindContent(text, out string message, out string restString))
+                {
+                    content = message;
+                    numberOfBytes = Encoding.GetBytes(content).Length;
+
+                    return true;
+                }
+            }
+            catch
+            {
+                //
+            }
+
+            return false;
         }
 
         public bool TryFindContent(byte[] buffer, out string content, out byte[] nextContent)

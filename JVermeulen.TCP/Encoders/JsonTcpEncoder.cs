@@ -9,6 +9,7 @@ namespace JVermeulen.TCP.Encoders
     public class JsonTcpEncoder : ITcpEncoder<string>
     {
         public static JsonTcpEncoder UTF8Encoder = new JsonTcpEncoder(Encoding.UTF8);
+        public int DelimeterNettoLength => 0;
 
         public Encoding Encoding { get; private set; }
 
@@ -83,6 +84,11 @@ namespace JVermeulen.TCP.Encoders
             }
 
             return false;
+        }
+
+        public bool TryFindContent(TcpBuffer buffer, out string content, out int numberOfBytes)
+        {
+            throw new NotImplementedException();
         }
     }
 }
