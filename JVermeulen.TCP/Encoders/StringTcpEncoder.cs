@@ -41,6 +41,35 @@ namespace JVermeulen.TCP.Encoders
                 return Encoding.GetString(data.Take(data.Length - DelimeterBytes.Length).ToArray());
         }
 
+        public bool TryFindContent(TcpBuffer buffer, out string content, out int numberOfBytes)
+        {
+            content = null;
+            numberOfBytes = 0;
+
+            try
+            {
+                var index = ByteTcpEncoder.Search(buffer.Data, DelimeterBytes);
+
+                if (index > -1)
+                {
+                    if (DelimeterIsPartOfMessage)
+                        content = Encoding.GetString(buffer.Data.Slice(0, index + DelimeterBytes.Length).Span);
+                    else
+                        content = Encoding.GetString(buffer.Data.Slice(0, index).Span);
+
+                    numberOfBytes = index + DelimeterBytes.Length;
+
+                    return true;
+                }
+            }
+            catch
+            {
+                //
+            }
+
+            return false;
+        }
+
         public bool TryFindContent(byte[] buffer, out string content, out byte[] nextContent)
         {
             content = null;
@@ -101,11 +130,6 @@ namespace JVermeulen.TCP.Encoders
 
                 return true;
             }
-        }
-
-        public bool TryFindContent(TcpBuffer buffer, out string content, out int numberOfBytes)
-        {
-            throw new NotImplementedException();
         }
     }
 }

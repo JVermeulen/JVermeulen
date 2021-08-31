@@ -1,11 +1,9 @@
 ﻿using JVermeulen.Processing;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace JVermeulen.TCP
 {

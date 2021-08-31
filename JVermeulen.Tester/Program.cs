@@ -4,44 +4,68 @@ using JVermeulen.TCP;
 using JVermeulen.TCP.Encoders;
 using System;
 using System.Buffers;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace JVermeulen.Tester
 {
     class Program
     {
+        private static int clientCount = 10;
+
         static void Main(string[] args)
         {
             var distributor = new ActorDistributor();
 
             using (var console = new ConsoleActor())
-            using (var server = new TcpServer<string>(XmlTcpEncoder.UTF8Encoder, 6000))
             {
-                distributor.Add(console);
                 console.Start();
+                distributor.Add(console);
 
-                server.OptionHeartbeatInterval = TimeSpan.FromSeconds(60);
-                server.Outbox.OptionWriteToConsole = false;
-                server.OptionBroadcastMessages = true;
-                server.OptionSendHeartbeatToOutbox = true;
-                server.SubscribeSafe<TcpSession<string>>(OnTcpSession, OnError);
-                server.Start();
+                using (var server = new TcpServer<string>(StringTcpEncoder.NullByteUTF8Encoder, 6000))
+                {
+                    distributor.Add(server);
 
-                distributor.Add(server);
+                    server.OptionEchoMessages = true;
+                    server.OptionHeartbeatInterval = TimeSpan.FromSeconds(60);
+                    server.Outbox.OptionWriteToConsole = false;
+                    server.OptionBroadcastMessages = true;
+                    server.OptionSendHeartbeatToOutbox = true;
+                    server.SubscribeSafe<TcpSession<string>>(OnTcpSession, OnError);
+                    server.Start();
 
-                //using (var client = new TcpClient<string>(XmlTcpEncoder.UTF8Encoder, "127.0.0.1", 6000))
-                //{
-                //    client.Queue.OptionWriteToConsole = true;
-                //    //client.MessageQueue.OptionWriteToConsole = true;
+                    Task.Delay(1000).Wait();
 
-                //    Task.Delay(15000).Wait();
-                //}
+                    for (int i = 0; i < clientCount; i++)
+                    {
+                        StartClientAsync(i);
+                    }
 
-                Task.Delay(60000).Wait();
+                    Task.Delay(10000).Wait();
+                }
             }
 
-            TestAppInfo();
-            TestNetworkInfo();
+            //TestAppInfo();
+            //TestNetworkInfo();
+        }
+
+        private static void StartClientAsync(int index)
+        {
+            Task.Run(() => StartClient(index)).ConfigureAwait(false);
+        }
+
+        private static void StartClient(int index)
+        {
+            using (var client = new TcpClient<string>(StringTcpEncoder.NullByteUTF8Encoder, "127.0.0.1", 6000))
+            {
+                client.Start();
+
+                Task.Delay(500).Wait();
+
+                client.Send($"Client {index}");
+
+                Task.Delay(500).Wait();
+            }
         }
 
         private static void OnTcpSession(SessionMessage message)

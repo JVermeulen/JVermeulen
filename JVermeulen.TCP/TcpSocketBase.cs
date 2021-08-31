@@ -53,10 +53,10 @@ namespace JVermeulen.TCP
                 {
                     var session = new TcpSession<T>(e.AcceptSocket ?? e.ConnectSocket, IsServer, Encoder);
                     session.SubscribeSafe<TcpSession<T>, SessionStatus>(OnTcpSessionStatus);
-                    session.SubscribeSafe<ContentMessage<T>>(OnTcpMessage);
-                    session.MessageBox.SubscribeSafe(OnTcpSessionStatus);
+                    //session.SubscribeSafe<ContentMessage<T>>(OnTcpMessage);
+                    session.MessageBox.SubscribeSafe(OnTcpMessage);
+                    session.MessageBox.OptionWriteToConsole = true;
                     session.Start();
-
                     Sessions.Add(session);
                 }
                 else
@@ -68,19 +68,23 @@ namespace JVermeulen.TCP
 
         public void Send(T content, TcpSession<T> session)
         {
-            var message = new ContentMessage<T>(session.LocalAddress, session.RemoteAddress, false, false, content, null);
+            var message = new ContentMessage<T>(session.LocalAddress, session.RemoteAddress, false, true, content, null);
 
             Inbox.Add(new SessionMessage(this, message));
         }
 
+        public void Send(T content)
+        {
+            var sessions = Sessions.Where(s => s.Status == SessionStatus.Started).ToList();
+
+            sessions.ForEach(s => Send(content, s));
+        }
+
         public void Send(T content, Func<TcpSession<T>, bool> where)
         {
-            var sessions = Sessions.Where(where);
+            var sessions = Sessions.Where(s => s.Status == SessionStatus.Started).Where(where).ToList();
 
-            foreach (var session in sessions)
-            {
-                Send(content, session);
-            }
+            sessions.ForEach(s => Send(content, s));
         }
 
         protected override void OnReceive(SessionMessage message)
@@ -124,20 +128,17 @@ namespace JVermeulen.TCP
             }
         }
 
-        private void OnTcpMessage(SessionMessage message)
+        private void OnTcpMessage(ContentMessage<T> message)
         {
-            if (message.Content is ContentMessage<T> tcpMessage)
+            if (message.IsIncoming)
             {
-                if (tcpMessage.IsIncoming)
-                {
-                    HeartbeatStatistics.NumberOfBytesReceived += tcpMessage.ContentInBytes ?? 0;
-                    HeartbeatStatistics.NumberOfMessagesReceived++;
-                }
-                else
-                {
-                    HeartbeatStatistics.NumberOfBytesSent += tcpMessage.ContentInBytes ?? 0;
-                    HeartbeatStatistics.NumberOfMessagesSent++;
-                }
+                HeartbeatStatistics.NumberOfBytesReceived += message.ContentInBytes ?? 0;
+                HeartbeatStatistics.NumberOfMessagesReceived++;
+            }
+            else
+            {
+                HeartbeatStatistics.NumberOfBytesSent += message.ContentInBytes ?? 0;
+                HeartbeatStatistics.NumberOfMessagesSent++;
             }
         }
 

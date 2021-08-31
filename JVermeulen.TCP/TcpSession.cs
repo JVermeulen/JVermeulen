@@ -11,6 +11,11 @@ namespace JVermeulen.TCP
     public class TcpSession<T> : Actor
     {
         /// <summary>
+        /// The default size of the receive and send buffer created. Default is 1024.
+        /// </summary>
+        public int DefaultMinimumBufferLength { get; set; } = 1024;
+
+        /// <summary>
         /// The number of bytes received.
         /// </summary>
         public long NumberOfBytesReceived => Interlocked.Read(ref _NumberOfBytesReceived);
@@ -42,12 +47,11 @@ namespace JVermeulen.TCP
         public bool IsConnected => Socket.Connected;
 
         private TcpBuffer ReceiveBuffer { get; set; }
-        private TcpBuffer SendBuffer { get; set; }
 
         private SocketAsyncEventArgs ReceiveEventArgs { get; set; }
         private SocketAsyncEventArgs SendEventArgs { get; set; }
 
-        public MessageBox<SessionMessage> MessageBox { get; private set; }
+        public MessageBox<ContentMessage<T>> MessageBox { get; private set; }
 
         public bool OptionPollOnHeartbeat { get; set; } = true;
 
@@ -61,19 +65,14 @@ namespace JVermeulen.TCP
             RemoteAddress = Socket.RemoteEndPoint.ToString();
 
             ReceiveBuffer = new TcpBuffer();
-            SendBuffer = new TcpBuffer();
 
-            var receiveBuffer = ArrayPool<byte>.Shared.Rent(1024);
             ReceiveEventArgs = new SocketAsyncEventArgs();
-            ReceiveEventArgs.SetBuffer(receiveBuffer, 0, receiveBuffer.Length);
             ReceiveEventArgs.Completed += OnAsyncCompleted;
 
-            var sendBuffer = ArrayPool<byte>.Shared.Rent(1024);
             SendEventArgs = new SocketAsyncEventArgs();
-            SendEventArgs.SetBuffer(sendBuffer, 0, sendBuffer.Length);
             SendEventArgs.Completed += OnAsyncCompleted;
 
-            MessageBox = new MessageBox<SessionMessage>();
+            MessageBox = new MessageBox<ContentMessage<T>>();
         }
 
         protected override void OnHeartbeat(Heartbeat heartbeat)
@@ -141,14 +140,20 @@ namespace JVermeulen.TCP
             Interlocked.Increment(ref _NumberOfMessagesSent);
 
             var message = (ContentMessage<T>)e.UserToken;
-            message.ContentInBytes = e.BytesTransferred;
+            message.ContentInBytes = e.BytesTransferred - Encoder.DelimeterNettoLength;
 
-            MessageBox.Add(new(this, message));
+            MessageBox.Add(message);
         }
 
         protected override void OnStarting()
         {
             base.OnStarting();
+
+            var receiveBuffer = ArrayPool<byte>.Shared.Rent(DefaultMinimumBufferLength);
+            ReceiveEventArgs.SetBuffer(receiveBuffer, 0, DefaultMinimumBufferLength);
+
+            var sendBuffer = ArrayPool<byte>.Shared.Rent(DefaultMinimumBufferLength);
+            SendEventArgs.SetBuffer(sendBuffer, 0, DefaultMinimumBufferLength);
 
             WaitForReceive();
         }
@@ -156,6 +161,12 @@ namespace JVermeulen.TCP
         protected override void OnStopping()
         {
             base.OnStopping();
+
+            if (ReceiveEventArgs.Buffer != null)
+                ArrayPool<byte>.Shared.Return(ReceiveEventArgs.Buffer);
+
+            if (SendEventArgs.Buffer != null)
+                ArrayPool<byte>.Shared.Return(SendEventArgs.Buffer);
 
             if (Socket.Connected)
             {
@@ -191,7 +202,7 @@ namespace JVermeulen.TCP
                             Interlocked.Increment(ref _NumberOfMessagesReceived);
 
                             var message = new ContentMessage<T>(RemoteAddress, LocalAddress, true, false, content, numberOfBytes - Encoder.DelimeterNettoLength);
-                            MessageBox.Add(new SessionMessage(this, message));
+                            MessageBox.Add(message);
                         }
 
                         WaitForReceive();
@@ -211,7 +222,7 @@ namespace JVermeulen.TCP
         private void OnExceptionOccured(Exception ex)
         {
             TcpException exception;
-            
+
             if (ex is SocketException socketException)
                 exception = new TcpException("Unable to continue TCP session because of an socket error.", ex, socketException.SocketErrorCode);
             else
@@ -245,8 +256,8 @@ namespace JVermeulen.TCP
         {
             base.Dispose();
 
-            ArrayPool<byte>.Shared.Return(ReceiveEventArgs.Buffer);
-            ArrayPool<byte>.Shared.Return(SendEventArgs.Buffer);
+            ReceiveEventArgs.Completed -= OnAsyncCompleted;
+            SendEventArgs.Completed -= OnAsyncCompleted;
         }
     }
 }
