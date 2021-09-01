@@ -1,16 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace JVermeulen.TCP.Encoders
 {
     public class JsonTcpEncoder : ITcpEncoder<string>
     {
         public static JsonTcpEncoder UTF8Encoder = new JsonTcpEncoder(Encoding.UTF8);
-        public int DelimeterNettoLength => 0;
-
+        public int NettoDelimeterLength => 0;
         public Encoding Encoding { get; private set; }
 
         public JsonTcpEncoder(Encoding encoding)
@@ -28,51 +24,30 @@ namespace JVermeulen.TCP.Encoders
             return Encoding.GetString(data);
         }
 
-        public bool TryFindContent(byte[] data, out string content, out byte[] nextContent)
+        public bool TryFindContent(Memory<byte> buffer, out string content, out int numberOfBytes)
         {
-            content = string.Empty;
-            nextContent = Array.Empty<byte>();
+            content = null;
+            numberOfBytes = 0;
 
             try
             {
-                var text = Encoding.GetString(data);
+                var beginMarker = Encoding.GetBytes("{");
+                var endMarker = Encoding.GetBytes("}");
 
-                if (TryFindContent(text, out string message, out string restString))
-                {
-                    content = message;
-                    nextContent = Encoding.GetBytes(restString);
-
-                    return true;
-                }
-            }
-            catch
-            {
-                //
-            }
-
-            return false;
-        }
-
-        public bool TryFindContent(string content, out string message, out string nextMessage)
-        {
-            message = null;
-            nextMessage = string.Empty;
-
-            try
-            {
                 int level = 0;
-
-                for (int i = 0; i < content.Length; i++)
+                for (int i = 0; i < buffer.Length; i++)
                 {
-                    if (content[i] == '{')
+                    if (ByteTcpEncoder.Match(buffer, beginMarker, i))
                         level++;
-                    else if (content[i] == '}')
+                    else if (ByteTcpEncoder.Match(buffer, endMarker, i))
                         level--;
 
                     if (level == 0)
                     {
-                        message = content.Substring(0, i + 1);
-                        nextMessage = content.Substring(i + 1, content.Length - i - 1);
+                        numberOfBytes = i + endMarker.Length;
+
+                        var data = buffer.Slice(0, numberOfBytes);
+                        content = Encoding.GetString(data.Span);
 
                         return true;
                     }
@@ -84,11 +59,6 @@ namespace JVermeulen.TCP.Encoders
             }
 
             return false;
-        }
-
-        public bool TryFindContent(TcpBuffer buffer, out string content, out int numberOfBytes)
-        {
-            throw new NotImplementedException();
         }
     }
 }

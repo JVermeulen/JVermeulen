@@ -1,4 +1,5 @@
-﻿using System;
+﻿using JVermeulen.TCP.Core;
+using System;
 
 namespace JVermeulen.TCP
 {
@@ -7,10 +8,8 @@ namespace JVermeulen.TCP
         byte[] Encode(T value);
         T Decode(byte[] data);
 
-        int DelimeterNettoLength { get; }
+        int NettoDelimeterLength { get; }
 
-        bool TryFindContent(byte[] buffer, out T content, out byte[] nextContent);
-
-        bool TryFindContent(TcpBuffer buffer, out T content, out int numberOfBytes);
+        bool TryFindContent(Memory<byte> buffer, out T content, out int numberOfBytes);
     }
 }

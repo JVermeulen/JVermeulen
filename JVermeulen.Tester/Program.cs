@@ -11,7 +11,7 @@ namespace JVermeulen.Tester
 {
     class Program
     {
-        private static int clientCount = 10;
+        private static int clientCount = 0;
 
         static void Main(string[] args)
         {
@@ -22,7 +22,7 @@ namespace JVermeulen.Tester
                 console.Start();
                 distributor.Add(console);
 
-                using (var server = new TcpServer<string>(StringTcpEncoder.NullByteUTF8Encoder, 6000))
+                using (var server = new TcpServer<string>(JsonTcpEncoder.UTF8Encoder, 6000))
                 {
                     distributor.Add(server);
 
@@ -34,14 +34,16 @@ namespace JVermeulen.Tester
                     server.SubscribeSafe<TcpSession<string>>(OnTcpSession, OnError);
                     server.Start();
 
-                    Task.Delay(1000).Wait();
+                    Task.Delay(5000).Wait();
+
+                    server.Send("{3}");
 
                     for (int i = 0; i < clientCount; i++)
                     {
                         StartClientAsync(i);
                     }
 
-                    Task.Delay(10000).Wait();
+                    Task.Delay(60000).Wait();
                 }
             }
 

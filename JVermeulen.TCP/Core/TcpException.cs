@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net.Sockets;
 
-namespace JVermeulen.TCP
+namespace JVermeulen.TCP.Core
 {
     public class TcpException : Exception
     {

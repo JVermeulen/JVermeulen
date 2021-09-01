@@ -51,7 +51,7 @@ namespace JVermeulen.TCP
             {
                 if (e.SocketError == SocketError.Success)
                 {
-                    var session = new TcpSession<T>(e.AcceptSocket ?? e.ConnectSocket, IsServer, Encoder);
+                    var session = new TcpSession<T>(e, Encoder);
                     session.SubscribeSafe<TcpSession<T>, SessionStatus>(OnTcpSessionStatus);
                     //session.SubscribeSafe<ContentMessage<T>>(OnTcpMessage);
                     session.MessageBox.SubscribeSafe(OnTcpMessage);

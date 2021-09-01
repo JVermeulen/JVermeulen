@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Buffers;
 
-namespace JVermeulen.TCP
+namespace JVermeulen.TCP.Core
 {
     /// <summary>
     /// Memory friendly, expendable byte[] buffer. Uses the ArrayPool so always dispose after use.

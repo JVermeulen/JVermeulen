@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Buffers;
 using System.Net.Sockets;
-using System.Threading;
 
-namespace JVermeulen.TCP
+namespace JVermeulen.TCP.Core
 {
     public class TcpConnection : IDisposable
     {
@@ -12,60 +11,32 @@ namespace JVermeulen.TCP
         /// </summary>
         public int DefaultMinimumBufferLength { get; set; } = 1024;
 
-        /// <summary>
-        /// The number of bytes received.
-        /// </summary>
-        public long NumberOfBytesReceived => Interlocked.Read(ref _NumberOfBytesReceived);
-        private long _NumberOfBytesReceived;
-
-        /// <summary>
-        /// The number of bytes sent.
-        /// </summary>
-        public long NumberOfBytesSent => Interlocked.Read(ref _NumberOfBytesSent);
-        private long _NumberOfBytesSent;
-
-        /// <summary>
-        /// The number of messages received.
-        /// </summary>
-        public long NumberOfMessagesReceived => Interlocked.Read(ref _NumberOfMessagesReceived);
-        private long _NumberOfMessagesReceived;
-
-        /// <summary>
-        /// The number of messages sent.
-        /// </summary>
-        public long NumberOfMessagesSent => Interlocked.Read(ref _NumberOfMessagesSent);
-        private long _NumberOfMessagesSent;
-
         public Socket Socket { get; private set; }
-        public bool IsConnected => Socket.Connected;
-        public bool IsServer { get; private set; }
-        public string LocalAddress { get; private set; }
-        public string RemoteAddress { get; private set; }
+        public bool IsStarted { get; private set; }
         private SocketAsyncEventArgs ReceiveEventArgs { get; set; }
         private SocketAsyncEventArgs SendEventArgs { get; set; }
+        private TcpBuffer ReceiveBuffer { get; set; }
 
         public EventHandler<TcpBuffer> DataReceived { get; set; }
         public EventHandler<TcpBuffer> DataSent { get; set; }
-        public EventHandler<Exception> OnExceptionOccured { get; set; }
+        public EventHandler<Exception> ExceptionOccured { get; set; }
 
         public TcpConnection(SocketAsyncEventArgs e)
         {
             Socket = e.AcceptSocket ?? e.ConnectSocket;
-            IsServer = e.AcceptSocket != null;
-
-            LocalAddress = Socket.LocalEndPoint.ToString();
-            RemoteAddress = Socket.RemoteEndPoint.ToString();
 
             ReceiveEventArgs = new SocketAsyncEventArgs();
             ReceiveEventArgs.Completed += OnAsyncCompleted;
 
             SendEventArgs = new SocketAsyncEventArgs();
             SendEventArgs.Completed += OnAsyncCompleted;
+
+            ReceiveBuffer = new TcpBuffer();
         }
 
         public void Start()
         {
-            if (!Socket.Connected)
+            if (!IsStarted)
             {
                 var receiveBuffer = ArrayPool<byte>.Shared.Rent(DefaultMinimumBufferLength);
                 ReceiveEventArgs.SetBuffer(receiveBuffer, 0, DefaultMinimumBufferLength);
@@ -74,12 +45,14 @@ namespace JVermeulen.TCP
                 SendEventArgs.SetBuffer(sendBuffer, 0, DefaultMinimumBufferLength);
 
                 WaitForReceive();
+
+                IsStarted = true;
             }
         }
 
         public void Stop()
         {
-            if (Socket.Connected)
+            if (IsStarted)
             {
                 if (ReceiveEventArgs.Buffer != null)
                     ArrayPool<byte>.Shared.Return(ReceiveEventArgs.Buffer);
@@ -92,7 +65,23 @@ namespace JVermeulen.TCP
                     Socket.Shutdown(SocketShutdown.Both);
                     Socket.Close();
                 }
+
+                IsStarted = false;
             }
+        }
+
+        private void OnExceptionOccured(Exception ex)
+        {
+            TcpException exception;
+
+            if (ex is SocketException socketException)
+                exception = new TcpException("Unable to continue TCP session because of an socket error.", ex, socketException.SocketErrorCode);
+            else
+                exception = new TcpException("Unable to contintue TCP session.", ex);
+
+            ExceptionOccured?.Invoke(this, exception);
+
+            Stop();
         }
 
         private void OnAsyncCompleted(object sender, SocketAsyncEventArgs e)
@@ -116,11 +105,9 @@ namespace JVermeulen.TCP
             {
                 if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
                 {
-                    Interlocked.Add(ref _NumberOfBytesReceived, e.BytesTransferred);
-                    Interlocked.Increment(ref _NumberOfMessagesReceived);
+                    ReceiveBuffer.Add(e.Buffer, e.Offset, e.BytesTransferred);
 
-                    var buffer = new TcpBuffer(e.Buffer, e.Offset, e.BytesTransferred);
-                    DataSent?.Invoke(this, buffer);
+                    DataReceived?.Invoke(this, ReceiveBuffer);
 
                     WaitForReceive();
                 }
@@ -131,27 +118,13 @@ namespace JVermeulen.TCP
             }
             catch (Exception ex)
             {
-                OnException(ex);
+                OnExceptionOccured(ex);
             }
-        }
-
-        private void OnException(Exception ex)
-        {
-            TcpException exception;
-
-            if (ex is SocketException socketException)
-                exception = new TcpException("Unable to continue TCP session because of an socket error.", ex, socketException.SocketErrorCode);
-            else
-                exception = new TcpException("Unable to contintue TCP session.", ex);
-
-            OnExceptionOccured?.Invoke(this, exception);
-
-            Stop();
         }
 
         public void Send(TcpBuffer buffer)
         {
-            if (IsConnected)
+            if (Socket.Connected)
             {
                 SendEventArgs.SetBuffer(buffer.Data);
                 SendEventArgs.UserToken = buffer;
@@ -166,22 +139,25 @@ namespace JVermeulen.TCP
             int bytesSent = e.BytesTransferred;
             var buffer = (TcpBuffer)e.UserToken;
 
-            Interlocked.Add(ref _NumberOfBytesSent, bytesSent);
-            Interlocked.Increment(ref _NumberOfMessagesSent);
-
             DataSent?.Invoke(this, buffer);
         }
 
-        public override string ToString()
+        public bool TryPollClient()
         {
-            if (IsServer)
-                return $"TCP Session ({LocalAddress} <= {RemoteAddress})";
-            else
-                return $"TCP Session ({LocalAddress} => {RemoteAddress})";
+            try
+            {
+                return Socket.Connected && !(Socket.Poll(1, SelectMode.SelectRead));
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public void Dispose()
         {
+            Stop();
+
             ReceiveEventArgs.Completed -= OnAsyncCompleted;
             SendEventArgs.Completed -= OnAsyncCompleted;
         }

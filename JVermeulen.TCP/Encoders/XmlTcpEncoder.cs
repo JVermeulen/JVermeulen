@@ -1,4 +1,5 @@
-﻿using System;
+﻿using JVermeulen.TCP.Core;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,7 +11,7 @@ namespace JVermeulen.TCP.Encoders
     public class XmlTcpEncoder : ITcpEncoder<string>
     {
         public static XmlTcpEncoder UTF8Encoder = new XmlTcpEncoder(Encoding.UTF8);
-        public int DelimeterNettoLength => 0;
+        public int NettoDelimeterLength => 0;
 
         public Encoding Encoding { get; private set; }
 
@@ -29,14 +30,14 @@ namespace JVermeulen.TCP.Encoders
             return Encoding.GetString(data);
         }
 
-        public bool TryFindContent(TcpBuffer buffer, out string content, out int numberOfBytes)
+        public bool TryFindContent(Memory<byte> buffer, out string content, out int numberOfBytes)
         {
             content = string.Empty;
             numberOfBytes = 0;
 
             try
             {
-                var text = Encoding.GetString(buffer.Data.Span);
+                var text = Encoding.GetString(buffer.Span);
 
                 if (TryFindContent(text, out string message, out string restString))
                 {

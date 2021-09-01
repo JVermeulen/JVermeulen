@@ -1,4 +1,5 @@
-﻿using System;
+﻿using JVermeulen.TCP.Core;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,14 +9,14 @@ namespace JVermeulen.TCP.Encoders
 {
     public class StringTcpEncoder : ITcpEncoder<string>
     {
-        public static StringTcpEncoder NewLineUTF8Encoder = new StringTcpEncoder(Encoding.UTF8, Environment.NewLine, false);
+        public static StringTcpEncoder NewLineUTF8Encoder = new StringTcpEncoder(Encoding.UTF8, "\r\n", false);
         public static StringTcpEncoder NullByteUTF8Encoder = new StringTcpEncoder(Encoding.UTF8, "\0", false);
 
         public Encoding Encoding { get; private set; }
         public string Delimeter { get; private set; }
         public bool DelimeterIsPartOfMessage { get; private set; }
         private byte[] DelimeterBytes { get; set; }
-        public int DelimeterNettoLength => DelimeterIsPartOfMessage ? 0 : DelimeterBytes.Length;
+        public int NettoDelimeterLength => DelimeterIsPartOfMessage ? 0 : DelimeterBytes.Length;
 
         public StringTcpEncoder(Encoding encoding, string delimeter, bool delimeterIsPartOfMessage = false)
         {
@@ -41,39 +42,10 @@ namespace JVermeulen.TCP.Encoders
                 return Encoding.GetString(data.Take(data.Length - DelimeterBytes.Length).ToArray());
         }
 
-        public bool TryFindContent(TcpBuffer buffer, out string content, out int numberOfBytes)
+        public bool TryFindContent(Memory<byte> buffer, out string content, out int numberOfBytes)
         {
             content = null;
             numberOfBytes = 0;
-
-            try
-            {
-                var index = ByteTcpEncoder.Search(buffer.Data, DelimeterBytes);
-
-                if (index > -1)
-                {
-                    if (DelimeterIsPartOfMessage)
-                        content = Encoding.GetString(buffer.Data.Slice(0, index + DelimeterBytes.Length).Span);
-                    else
-                        content = Encoding.GetString(buffer.Data.Slice(0, index).Span);
-
-                    numberOfBytes = index + DelimeterBytes.Length;
-
-                    return true;
-                }
-            }
-            catch
-            {
-                //
-            }
-
-            return false;
-        }
-
-        public bool TryFindContent(byte[] buffer, out string content, out byte[] nextContent)
-        {
-            content = null;
-            nextContent = Array.Empty<byte>();
 
             try
             {
@@ -81,16 +53,10 @@ namespace JVermeulen.TCP.Encoders
 
                 if (index > -1)
                 {
-                    if (DelimeterIsPartOfMessage)
-                    {
-                        content = Encoding.GetString(buffer.Take(index + DelimeterBytes.Length).ToArray());
-                        nextContent = buffer.Skip(index + DelimeterBytes.Length).Take(buffer.Length - index + DelimeterBytes.Length).ToArray();
-                    }
-                    else
-                    {
-                        content = Encoding.GetString(buffer.Take(index).ToArray());
-                        nextContent = buffer.Skip(index + DelimeterBytes.Length).Take(buffer.Length - index).ToArray();
-                    }
+                    numberOfBytes = index + DelimeterBytes.Length;
+
+                    var data = DelimeterIsPartOfMessage ? buffer.Slice(0, index + DelimeterBytes.Length) : buffer.Slice(0, index);
+                    content = Encoding.GetString(data.Span);
 
                     return true;
                 }
@@ -101,35 +67,6 @@ namespace JVermeulen.TCP.Encoders
             }
 
             return false;
-        }
-
-        private int Search(byte[] haystack, byte[] needle)
-        {
-            for (int i = 0; i <= haystack.Length - needle.Length; i++)
-            {
-                if (match(haystack, needle, i))
-                    return i;
-            }
-
-            return -1;
-        }
-
-        private bool match(byte[] haystack, byte[] needle, int start)
-        {
-            if (needle.Length + start > haystack.Length)
-            {
-                return false;
-            }
-            else
-            {
-                for (int i = 0; i < needle.Length; i++)
-                {
-                    if (needle[i] != haystack[i + start])
-                        return false;
-                }
-
-                return true;
-            }
         }
     }
 }
