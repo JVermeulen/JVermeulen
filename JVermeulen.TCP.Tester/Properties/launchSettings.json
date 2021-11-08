@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "JVermeulen.TCP.Tester": {
+      "commandName": "Project",
+      "commandLineArgs": "100"
+    }
+  }
+}

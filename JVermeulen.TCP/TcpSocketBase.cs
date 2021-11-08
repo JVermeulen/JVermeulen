@@ -1,4 +1,5 @@
 ﻿using JVermeulen.Processing;
+using JVermeulen.TCP.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -109,9 +110,7 @@ namespace JVermeulen.TCP
 
             foreach (var session in sessions)
             {
-                var newMessage = (ContentMessage<T>)message.Clone();
-
-                session.Send(newMessage);
+                session.Send(message.Content);
             }
         }
 

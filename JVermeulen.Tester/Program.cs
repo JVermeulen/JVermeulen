@@ -1,51 +1,42 @@
 ﻿using JVermeulen.App;
+using JVermeulen.MQTT;
 using JVermeulen.Processing;
 using JVermeulen.TCP;
+using JVermeulen.TCP.Core;
 using JVermeulen.TCP.Encoders;
 using System;
-using System.Buffers;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace JVermeulen.Tester
 {
     class Program
     {
-        private static int clientCount = 0;
-
         static void Main(string[] args)
         {
-            var distributor = new ActorDistributor();
-
-            using (var console = new ConsoleActor())
+            using (var client = new MqttClient("PI04.home"))
             {
-                console.Start();
-                distributor.Add(console);
-
-                using (var server = new TcpServer<string>(JsonTcpEncoder.UTF8Encoder, 6000))
-                {
-                    distributor.Add(server);
-
-                    server.OptionEchoMessages = true;
-                    server.OptionHeartbeatInterval = TimeSpan.FromSeconds(60);
-                    server.Outbox.OptionWriteToConsole = false;
-                    server.OptionBroadcastMessages = true;
-                    server.OptionSendHeartbeatToOutbox = true;
-                    server.SubscribeSafe<TcpSession<string>>(OnTcpSession, OnError);
-                    server.Start();
-
-                    Task.Delay(5000).Wait();
-
-                    server.Send("{3}");
-
-                    for (int i = 0; i < clientCount; i++)
-                    {
-                        StartClientAsync(i);
-                    }
-
-                    Task.Delay(60000).Wait();
-                }
+                Task.Delay(120000).Wait();
             }
+            //using (var acceptor = new TcpConnector(6000))
+            //{
+            //    acceptor.ClientConnected += (s, e) => Console.WriteLine($"Client {e} connected.");
+            //    acceptor.ClientConnected += (s, e) => e.OptionEchoReceivedData = true;
+            //    acceptor.ClientDisconnected += (s, e) => Console.WriteLine($"Client {e} disconnected.");
+            //    acceptor.StateChanged += (s, e) => Console.WriteLine($"Server started: {e}");
+            //    acceptor.ExceptionOccured += (s, e) => Console.WriteLine($"Server error: {e}");
+            //    acceptor.Start(true);
+
+            //    Task.Delay(1200000).Wait();
+            //}
+
+            //using (var server = new TcpServer<string>(StringTcpEncoder.NullByteUTF8Encoder, 6000))
+            //{
+            //    server.Outbox.OptionWriteToConsole = true;
+            //    server.SubscribeSafe<TcpSession<string>>(OnTcpSession, OnError);
+            //    server.Start();
+
+            //    Console.ReadKey();
+            //}
 
             //TestAppInfo();
             //TestNetworkInfo();

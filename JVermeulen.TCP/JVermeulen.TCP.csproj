@@ -14,10 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="5.0.9" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\JVermeulen.App\JVermeulen.App.csproj" />
     <ProjectReference Include="..\JVermeulen.Processing\JVermeulen.Processing.csproj" />
   </ItemGroup>

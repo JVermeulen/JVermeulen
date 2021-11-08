@@ -1,4 +1,5 @@
 ﻿using JVermeulen.Processing;
+using JVermeulen.TCP.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,80 +10,77 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.TCP
 {
-    public class TcpServer<T> : TcpSocketBase<T>
+    public class TcpServer<T> : Actor
     {
-        public override bool IsServer => true;
-        private SocketAsyncEventArgs AcceptorEventArgs { get; set; }
+        public TcpConnector Acceptor { get; set; }
 
+        public bool IsServer { get; private set; }
         public bool OptionBroadcastMessages { get; set; } = false;
-        public bool OptionEchoMessages { get; set; }
+        public bool OptionEchoMessages { get; set; } = false;
+
+        public ITcpEncoder<T> Encoder { get; private set; }
+        public string LocalAddress { get; private set; }
+        public List<TcpSession<T>> Sessions { get; private set; }
 
         public TcpServer(ITcpEncoder<T> encoder, int port) : this(encoder, new IPEndPoint(IPAddress.Any, port))
         {
             //
         }
 
-        public TcpServer(ITcpEncoder<T> encoder, IPEndPoint serverEndpoint) : base(encoder, serverEndpoint, TimeSpan.FromSeconds(60))
+        public TcpServer(ITcpEncoder<T> encoder, IPEndPoint serverEndpoint) : base(TimeSpan.FromSeconds(5))
         {
-            //
+            Encoder = encoder;
+
+            Acceptor = new TcpConnector(serverEndpoint);
+            Acceptor.ClientConnected += OnClientConnected;
+            Acceptor.ClientDisconnected += OnClientDisconnected;
+
+            LocalAddress = serverEndpoint.ToString();
+
+            Sessions = new List<TcpSession<T>>();
         }
 
         protected override void OnStarting()
         {
             base.OnStarting();
 
-            AcceptorEventArgs = new SocketAsyncEventArgs();
-            AcceptorEventArgs.Completed += OnClientConnecting;
-
-            Socket = new Socket(ServerEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            Socket.Bind(ServerEndPoint);
-            ServerEndPoint = (IPEndPoint)Socket.LocalEndPoint;
-            Socket.Listen();
-
-            Accept(AcceptorEventArgs);
+            Acceptor.Start(true);
         }
 
         protected override void OnStopping()
         {
             base.OnStopping();
 
-            Socket?.Dispose();
+            Acceptor.Stop();
         }
 
-        private void Accept(SocketAsyncEventArgs e)
+        private void OnClientConnected(object sender, TcpConnection e)
         {
-            if (Status == SessionStatus.Started || Status == SessionStatus.Starting)
-            {
-                e.AcceptSocket = null;
+            var session = new TcpSession<T>(e, Encoder);
+            session.Start();
 
-                if (!Socket.AcceptAsync(e))
-                    OnClientConnecting(this, e);
-            }
+            Sessions.Add(session);
         }
 
-        private void OnClientConnecting(object sender, SocketAsyncEventArgs e)
+        private void OnClientDisconnected(object sender, TcpConnection e)
         {
-            OnClientConnected(e);
+            var session = Sessions.Where(s => s.Connection == e).FirstOrDefault();
 
-            if (e.SocketError == SocketError.Success)
-            {
-                Accept(e);
-            }
+            if (session != null)
+                Sessions.Remove(session);
         }
 
-        protected override void OnTcpSessionStatus(SessionMessage message)
-        {
-            base.OnTcpSessionStatus(message);
+        //protected override void OnTcpSessionStatus(SessionMessage message)
+        //{
+        //    if (message.Content is ContentMessage<T> tcpMessage && tcpMessage.IsIncoming)
+        //    {
+        //        if (OptionBroadcastMessages)
+        //            Broadcast((T)tcpMessage.Content, tcpMessage.SenderAddress);
 
-            if (message.Content is ContentMessage<T> tcpMessage && tcpMessage.IsIncoming)
-            {
-                if (OptionBroadcastMessages)
-                    Broadcast((T)tcpMessage.Content, tcpMessage.SenderAddress);
-
-                if (OptionEchoMessages)
-                    Echo((T)tcpMessage.Content, tcpMessage.SenderAddress);
-            }
-        }
+        //        if (OptionEchoMessages)
+        //            Echo((T)tcpMessage.Content, tcpMessage.SenderAddress);
+        //    }
+        //}
 
         protected override void OnReceive(SessionMessage message)
         {
@@ -104,9 +102,29 @@ namespace JVermeulen.TCP
             Send(content, s => s.IsConnected && (sender == null || s.RemoteAddress != sender));
         }
 
+        public void Send(T content, Func<TcpSession<T>, bool> query)
+        {
+            var sessions = Sessions.Where(s => s.Status == SessionStatus.Started).Where(query).ToList();
+
+            sessions.ForEach(s => s.Send(content));
+        }
+
         public override string ToString()
         {
-            return $"TCP Server ({ServerAddress})";
+            return $"TCP Server ({LocalAddress})";
+        }
+
+        protected override void OnHeartbeat(Heartbeat heartbeat)
+        {
+            Console.WriteLine($"Connected clients: {Sessions.Where(S => S.IsConnected).Count()}");
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+
+            Acceptor.ClientConnected -= OnClientConnected;
+            Acceptor.ClientDisconnected -= OnClientDisconnected;
         }
     }
 }

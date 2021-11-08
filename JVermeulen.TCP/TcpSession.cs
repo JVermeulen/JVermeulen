@@ -17,10 +17,10 @@ namespace JVermeulen.TCP
         public MessageBox<ContentMessage<T>> MessageBox { get; private set; }
         public bool OptionPollOnHeartbeat { get; set; } = true;
 
-        public bool IsServer { get; private set; }
-        public string LocalAddress { get; private set; }
-        public string RemoteAddress { get; private set; }
+        public bool IsServer => Connection.IsServer;
         public bool IsConnected => Connection.Socket.Connected;
+        public string LocalAddress => Connection.LocalAddress;
+        public string RemoteAddress => Connection.RemoteAddress;
 
         private T ContentToken { get; set; }
 
@@ -48,19 +48,20 @@ namespace JVermeulen.TCP
         public long NumberOfMessagesSent => Interlocked.Read(ref _NumberOfMessagesSent);
         private long _NumberOfMessagesSent;
 
-        public TcpSession(SocketAsyncEventArgs e, ITcpEncoder<T> encoder) : base(TimeSpan.FromSeconds(60))
+        public TcpSession(SocketAsyncEventArgs e, ITcpEncoder<T> encoder) : this(new TcpConnection(e), encoder)
+        {
+            //
+        }
+
+        public TcpSession(TcpConnection connection, ITcpEncoder<T> encoder) : base(TimeSpan.FromSeconds(60))
         {
             Encoder = encoder;
             MessageBox = new MessageBox<ContentMessage<T>>();
 
-            Connection = new TcpConnection(e);
+            Connection = connection;
             Connection.DataReceived += OnReceived;
             Connection.DataSent += OnSent;
             Connection.ExceptionOccured += OnExceptionOccured;
-
-            IsServer = e.AcceptSocket != null;
-            LocalAddress = Connection.Socket.LocalEndPoint.ToString();
-            RemoteAddress = Connection.Socket.RemoteEndPoint.ToString();
         }
 
         protected override void OnHeartbeat(Heartbeat heartbeat)
@@ -73,18 +74,15 @@ namespace JVermeulen.TCP
 
         private void PollClient()
         {
-            var isActive = Connection.TryPollClient();
-
-            var message = new TcpPoll(isActive);
-            Outbox.Add(new SessionMessage(this, message));
+            var isActive = Connection.TryPollConnection();
 
             if (!isActive)
                 Restart();
         }
 
-        public void Send(ContentMessage<T> message)
+        public void Send(T content)
         {
-            var data = Encoder.Encode(message.Content);
+            var data = Encoder.Encode(content);
 
             var buffer = new TcpBuffer(data);
 
