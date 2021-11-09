@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>JVermeulen.App.Windows</name>
+    </assembly>
+    <members>
+        <member name="T:JVermeulen.App.Windows.EventLogManager">
+            <summary>
+            Manager for Windows Event Logs.
+            </summary>
+        </member>
+        <member name="F:JVermeulen.App.Windows.EventLogManager.EventLogRegistryKey">
+            <summary>
+            The windows registry key for event logs.
+            </summary>
+        </member>
+        <member name="F:JVermeulen.App.Windows.EventLogManager.Application">
+            <summary>
+            The text 'Application', the default event log name.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.Windows.EventLogManager.EventLogs">
+            <summary>
+            The available event logs.
+            </summary>
+        </member>
+        <member name="P:JVermeulen.App.Windows.EventLogManager.EventSources">
+            <summary>
+            The available event sources.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.App.Windows.EventLogManager.#ctor">
+            <summary>
+            The constructor of this class.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.App.Windows.EventLogManager.TryLoadEventLogs(System.String@)">
+            <summary>
+            Try to load all event logs and sources.
+            </summary>
+            <param name="error">Error when loading failed.</param>
+        </member>
+        <member name="M:JVermeulen.App.Windows.EventLogManager.GetEventLogs">
+            <summary>
+            Load all event logs.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.App.Windows.EventLogManager.GetEventSources">
+            <summary>
+            Load all event sources.
+            </summary>
+        </member>
+        <member name="M:JVermeulen.App.Windows.EventLogManager.TryGetEventSource(System.String,System.Collections.Generic.List{System.Diagnostics.EventLog}@,System.String@)">
+            <summary>
+            Try to get all event sources from the registry.
+            </summary>
+            <param name="logName">The log name.</param>
+            <param name="eventSources">The result.</param>
+            <param name="error">Error when loading failed.</param>
+        </member>
+        <member name="M:JVermeulen.App.Windows.EventLogManager.GetEventSources(System.String)">
+            <summary>
+            Get all sources from the registry.
+            </summary>
+            <param name="logName">The log name.</param>
+        </member>
+        <member name="M:JVermeulen.App.Windows.EventLogManager.GetEventLog(System.String,System.String)">
+            <summary>
+            Get the event log with the given log and source.
+            </summary>
+            <param name="log">The log name.</param>
+            <param name="source">The source name.</param>
+        </member>
+        <member name="M:JVermeulen.App.Windows.EventLogManager.GetOrCreateEventLog(System.String,System.String)">
+            <summary>
+            Get the event log with the given log and source. If it does not exist, create it.
+            </summary>
+            <param name="log">The log name.</param>
+            <param name="source">The source name.</param>
+        </member>
+        <member name="M:JVermeulen.App.Windows.EventLogManager.CreateEventLog(System.String,System.String)">
+            <summary>
+            Create the log with the given log and source.
+            </summary>
+            <param name="log">The log name.</param>
+            <param name="source">The source name.</param>
+        </member>
+        <member name="M:JVermeulen.App.Windows.EventLogManager.TryDeleteEventLog(System.String,System.String,System.String@)">
+            <summary>
+            Try to delete the log with the given log and source.
+            </summary>
+            <param name="log">The log name.</param>
+            <param name="source">The source name.</param>
+            <param name="error">Error when deleting failed.</param>
+        </member>
+        <member name="M:JVermeulen.App.Windows.EventLogManager.DeleteEventLog(System.String,System.String)">
+            <summary>
+            Delete the log with the given log and source.
+            </summary>
+            <param name="log">The log name.</param>
+            <param name="source">The source name.</param>
+        </member>
+    </members>
+</doc>

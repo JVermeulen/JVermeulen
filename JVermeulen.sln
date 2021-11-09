@@ -15,7 +15,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JVermeulen.App.Tests", "JVe
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JVermeulen.TCP.Tester", "JVermeulen.TCP.Tester\JVermeulen.TCP.Tester.csproj", "{58F4970A-3AAD-478C-8E17-CDBDD89330F1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JVermeulen.MQTT", "JVermeulen.MQTT\JVermeulen.MQTT.csproj", "{53FFE2E3-3A7D-4A3E-9C28-63C6ACEDDF4B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JVermeulen.MQTT", "JVermeulen.MQTT\JVermeulen.MQTT.csproj", "{53FFE2E3-3A7D-4A3E-9C28-63C6ACEDDF4B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JVermeulen.App.Windows", "JVermeulen.App.Windows\JVermeulen.App.Windows.csproj", "{93194F15-4274-4887-9EB8-875F8AD2BFB3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,6 +53,10 @@ Global
 		{53FFE2E3-3A7D-4A3E-9C28-63C6ACEDDF4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{53FFE2E3-3A7D-4A3E-9C28-63C6ACEDDF4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{53FFE2E3-3A7D-4A3E-9C28-63C6ACEDDF4B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{93194F15-4274-4887-9EB8-875F8AD2BFB3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93194F15-4274-4887-9EB8-875F8AD2BFB3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93194F15-4274-4887-9EB8-875F8AD2BFB3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93194F15-4274-4887-9EB8-875F8AD2BFB3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
