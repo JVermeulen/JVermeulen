@@ -1,4 +1,5 @@
 ﻿using JVermeulen.App;
+using JVermeulen.App.Windows;
 using JVermeulen.MQTT;
 using JVermeulen.Processing;
 using JVermeulen.TCP;
@@ -13,10 +14,33 @@ namespace JVermeulen.Tester
     {
         static void Main(string[] args)
         {
-            using (var client = new MqttClient("PI04.home"))
+
+            if (NetworkInfo.TryGetHttpClientSslSupport(out string[] protocols))
             {
-                Task.Delay(120000).Wait();
+
             }
+
+            var manager = new EventLogManager();
+
+            var log = manager.GetOrCreateEventLog(EventLogManager.Application, "Test");
+
+            if (log != null)
+            {
+                log.EntryWritten += Log_EntryWritten;
+                log.EnableRaisingEvents = true;
+
+                Task.Delay(3000).Wait();
+
+                log.WriteEntry("Test", System.Diagnostics.EventLogEntryType.Information);
+
+            }
+
+            Console.ReadLine();
+
+            //using (var client = new MqttClient("PI04.home"))
+            //{
+            //    Task.Delay(120000).Wait();
+            //}
             //using (var acceptor = new TcpConnector(6000))
             //{
             //    acceptor.ClientConnected += (s, e) => Console.WriteLine($"Client {e} connected.");
@@ -40,6 +64,13 @@ namespace JVermeulen.Tester
 
             //TestAppInfo();
             //TestNetworkInfo();
+        }
+
+        private static void Log_EntryWritten(object sender, System.Diagnostics.EntryWrittenEventArgs e)
+        {
+            string log = (string)sender.GetType().GetProperty("Log").GetValue(sender, null);
+
+            Console.WriteLine($"Entry written in {e.Entry.MachineName}.{log}.{e.Entry.Source}: {e.Entry.Message}");
         }
 
         private static void StartClientAsync(int index)

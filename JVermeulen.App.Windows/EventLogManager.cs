@@ -143,9 +143,9 @@ namespace JVermeulen.App.Windows
                 EventSources = GetEventSources();
 
             if (source == null)
-                return EventLogs.Where(l => l.Log == log).FirstOrDefault();
+                return EventLogs.Where(l => l.Log.Equals(log)).FirstOrDefault();
             else
-                return EventSources.Where(l => l.Log == log && l.Source == source).FirstOrDefault();
+                return EventSources.Where(l => l.Log.Equals(log, StringComparison.OrdinalIgnoreCase) && l.Source.Equals(source, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
         }
 
         /// <summary>

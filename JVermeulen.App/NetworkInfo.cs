@@ -88,5 +88,38 @@ namespace JVermeulen.App
                 return false;
             }
         }
+
+        /// <summary>
+        /// List which protocols a HTTP client supports.
+        /// </summary>
+        /// <param name="protocols">The supported protocols.</param>
+        public static bool TryGetHttpClientSslSupport(out string[] protocols)
+        {
+            protocols = null;
+
+            try
+            {
+                var test_servers = new Dictionary<string, string>();
+                test_servers["SSL 2"] = "https://www.ssllabs.com:10200";
+                test_servers["SSL 3"] = "https://www.ssllabs.com:10300";
+                test_servers["TLS 1.0"] = "https://www.ssllabs.com:10301";
+                test_servers["TLS 1.1"] = "https://www.ssllabs.com:10302";
+                test_servers["TLS 1.2"] = "https://www.ssllabs.com:10303";
+
+                var supported = new Func<string, bool>(url =>
+                {
+                    try { return new System.Net.Http.HttpClient().GetAsync(url).Result.IsSuccessStatusCode; }
+                    catch { return false; }
+                });
+
+                protocols = test_servers.Where(server => supported(server.Value)).Select(kvp => kvp.Key).ToArray();
+            }
+            catch
+            {
+                return false;
+            }
+
+            return protocols != null;
+        }
     }
 }

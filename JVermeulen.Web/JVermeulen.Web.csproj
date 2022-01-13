@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <UserSecretsId>19a0bf53-c666-4713-9388-07660640363e</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="5.6.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JVermeulen.App.Windows\JVermeulen.App.Windows.csproj" />
+    <ProjectReference Include="..\JVermeulen.App\JVermeulen.App.csproj" />
+  </ItemGroup>
+
+</Project>

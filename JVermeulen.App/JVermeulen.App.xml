@@ -134,6 +134,12 @@
             <param name="ipAddresses">Output IPAddress(es).</param>
             <returns>No errors occured.</returns>
         </member>
+        <member name="M:JVermeulen.App.NetworkInfo.TryGetSslSupport(System.String[]@)">
+            <summary>
+            List which protocols a HTTP client supports.
+            </summary>
+            <param name="protocols">The supported protocols.</param>
+        </member>
         <member name="T:JVermeulen.App.UserInfo">
             <summary>
             Static class for user info.
