@@ -134,7 +134,7 @@
             <param name="ipAddresses">Output IPAddress(es).</param>
             <returns>No errors occured.</returns>
         </member>
-        <member name="M:JVermeulen.App.NetworkInfo.TryGetSslSupport(System.String[]@)">
+        <member name="M:JVermeulen.App.NetworkInfo.TryGetHttpClientSslSupport(System.String[]@)">
             <summary>
             List which protocols a HTTP client supports.
             </summary>

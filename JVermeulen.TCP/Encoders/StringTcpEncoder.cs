@@ -11,7 +11,7 @@ namespace JVermeulen.TCP.Encoders
     {
         public static StringTcpEncoder NewLineUTF8Encoder = new StringTcpEncoder(Encoding.UTF8, "\r\n", false);
         public static StringTcpEncoder NullByteUTF8Encoder = new StringTcpEncoder(Encoding.UTF8, "\0", false);
-
+        
         public Encoding Encoding { get; private set; }
         public string Delimeter { get; private set; }
         public bool DelimeterIsPartOfMessage { get; private set; }

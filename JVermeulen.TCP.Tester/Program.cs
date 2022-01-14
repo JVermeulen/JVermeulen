@@ -1,6 +1,7 @@
 ﻿using JVermeulen.Processing;
 using JVermeulen.TCP.Core;
 using JVermeulen.TCP.Encoders;
+using JVermeulen.TCP.WebSocket;
 using System;
 using System.Text;
 using System.Threading;
@@ -16,12 +17,8 @@ namespace JVermeulen.TCP.Tester
         {
             try
             {
-                int count = args.Length > 0 ? Convert.ToInt32(args[0]) : 1;
-
-                for (int i = 0; i < count; i++)
-                {
-                    CreateClientAsync();
-                }
+                var server = new WsServer(WsTcpEncoder.Default, 8080);
+                server.Start();
 
                 Console.WriteLine("Done!");
                 Console.ReadKey();

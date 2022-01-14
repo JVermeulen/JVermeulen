@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace JVermeulen.TCP.Core
 {
@@ -135,11 +136,10 @@ namespace JVermeulen.TCP.Core
                 var sendBuffer = ArrayPool<byte>.Shared.Rent(DefaultMinimumBufferLength);
                 SendEventArgs.SetBuffer(sendBuffer, 0, DefaultMinimumBufferLength);
 
-                WaitForReceive();
-
                 IsStarted = true;
 
                 StateChanged?.Invoke(this, true);
+                WaitForReceive();
             }
         }
 

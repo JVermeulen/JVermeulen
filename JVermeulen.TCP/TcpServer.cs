@@ -14,7 +14,6 @@ namespace JVermeulen.TCP
     {
         public TcpConnector Acceptor { get; set; }
 
-        public bool IsServer { get; private set; }
         public bool OptionBroadcastMessages { get; set; } = false;
         public bool OptionEchoMessages { get; set; } = false;
 
@@ -34,7 +33,7 @@ namespace JVermeulen.TCP
             Acceptor = new TcpConnector(serverEndpoint);
             Acceptor.ClientConnected += OnClientConnected;
             Acceptor.ClientDisconnected += OnClientDisconnected;
-
+            
             LocalAddress = serverEndpoint.ToString();
 
             Sessions = new List<TcpSession<T>>();
@@ -54,15 +53,21 @@ namespace JVermeulen.TCP
             Acceptor.Stop();
         }
 
-        private void OnClientConnected(object sender, TcpConnection e)
+        protected virtual void OnClientConnected(object sender, TcpConnection e)
         {
             var session = new TcpSession<T>(e, Encoder);
+            session.MessageBox.SubscribeSafe(OnTcpMessage);
             session.Start();
 
             Sessions.Add(session);
         }
 
-        private void OnClientDisconnected(object sender, TcpConnection e)
+        protected virtual void OnTcpMessage(ContentMessage<T> message)
+        {
+            //
+        }
+
+        protected virtual void OnClientDisconnected(object sender, TcpConnection e)
         {
             var session = Sessions.Where(s => s.Connection == e).FirstOrDefault();
 
