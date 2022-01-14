@@ -1,5 +1,4 @@
 ﻿using JVermeulen.Processing;
-using JVermeulen.TCP.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -48,10 +47,15 @@ namespace JVermeulen.TCP.WebSocket
         {
             Console.WriteLine(frame.ToString());
 
-            //WebSocket server must not use mask.
-            frame.Mask = null;
+            if (OptionEchoMessages)
+            {
+                //WebSocket server must not use mask.
+                frame.Mask = null;
 
-            Send(frame, s => s.RemoteAddress == clientAddress);
+                Send(frame, s => s.RemoteAddress == clientAddress);
+            }
+
+            Send(WsFrame.PingFrame, s => s.RemoteAddress == clientAddress);
         }
 
         protected void OnHandshake(string clientAddress, string content)

@@ -8,6 +8,8 @@ namespace JVermeulen.TCP.WebSocket
 {
     public class WsFrame
     {
+        public static WsFrame PingFrame = new WsFrame { FIN = true, Opcode = WsFrameType.Ping };
+
         /// <summary>
         /// Indicates that this is the final fragment in a message.  The first fragment MAY also be the final fragment.
         /// </summary>
@@ -43,20 +45,9 @@ namespace JVermeulen.TCP.WebSocket
         public byte[] Mask { get; set; }
 
         /// <summary>
-        ///  The length of the "Payload data", in bytes. The payload length is the length of the "Extension data" + the length of the "Application data".
-        ///  The length of the "Extension data" may be zero, in which case the payload length is the length of the "Application data".
-        /// </summary>
-        public long PayloadLength { get; set; }
-
-        /// <summary>
         /// The "Payload data" is defined as "Extension data" concatenated with "Application data".
         /// </summary>
         public byte[] Payload { get; set; }
-
-        /// <summary>
-        /// The size in bytes of the header and payload.
-        /// </summary>
-        public long TotalSizeInBytes { get; set; }
 
         /// <summary>
         /// Represents the text value of this object.
@@ -66,37 +57,48 @@ namespace JVermeulen.TCP.WebSocket
             return Encoding.UTF8.GetString(Payload);
         }
 
-        public int CalculateHeaderSizeInBytes()
+        /// <summary>
+        /// Returns the size of the frame header, not including the mask.
+        /// </summary>
+        public int HeaderSizeInBytes
         {
-            if (Payload.Length > UInt16.MaxValue)
-                return 6;
-            else if (Payload.Length > 125)
-                return 4;
-            else
-                return 2;
+            get
+            {
+                if (Payload == null)
+                    return 1;
+                else if (Payload.Length > UInt16.MaxValue)
+                    return 6;
+                else if (Payload.Length > 125)
+                    return 4;
+                else
+                    return 2;
+            }
         }
 
-        public int CalculateMaskSizeInBytes()
-        {
-            if (Mask == null)
-                return 0;
-            else
-                return Mask.Length;
-        }
+        /// <summary>
+        /// Returns the size of the frame mask, or 0 if not available.
+        /// </summary>
+        public int MaskSizeInBytes => Mask != null ? Mask.Length : 0;
 
-        public long CalculateTotalSizeInBytes()
+        /// <summary>
+        /// Returns the total size of the frame.
+        /// </summary>
+        public long TotalSizeInBytes
         {
-            if (Opcode == WsFrameType.Handshake)
-                return Payload.Length;
-            else if (Payload != null)
-                return CalculateHeaderSizeInBytes() + CalculateMaskSizeInBytes() + Payload.Length;
-            else
-                return 2;
+            get
+            {
+                if (Opcode == WsFrameType.Handshake)
+                    return Payload.Length;
+                else if (Payload != null)
+                    return HeaderSizeInBytes + MaskSizeInBytes + Payload.Length;
+                else
+                    return HeaderSizeInBytes;
+            }
         }
 
         public string Print()
         {
-            Encoders.WsTcpEncoder.SplitPayloadLength(PayloadLength, out byte length, out UInt16? extended1, out UInt64? extended2);
+            Encoders.WsTcpEncoder.SplitPayloadLength(Payload.Length, out byte length, out UInt16? extended1, out UInt64? extended2);
 
             var extended1T = extended1.HasValue ? $"{extended1.Value:D31}" : new string(' ', 31);
             var extended2T = extended2.HasValue ? $"{extended2.Value:D63}" : new string(' ', 63);

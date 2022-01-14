@@ -21,10 +21,7 @@ namespace JVermeulen.TCP.Encoders
 
         public byte[] Encode(WsFrame value)
         {
-            if (value.Opcode == WsFrameType.Handshake)
-                return value.Payload;
-            else
-                return Parse(value);
+            return Parse(value);
         }
 
         public WsFrame Decode(byte[] data)
@@ -40,8 +37,7 @@ namespace JVermeulen.TCP.Encoders
             if (buffer.Length < 3)
                 return false;
 
-            var span = buffer.Span;
-            if (span.StartsWith(HandshakeKey))
+            if (buffer.Span.StartsWith(HandshakeKey))
             {
                 content = new WsFrame
                 {
@@ -53,7 +49,7 @@ namespace JVermeulen.TCP.Encoders
             }
             else
             {
-                content = Parse(span);
+                content = Parse(buffer.Span);
 
                 numberOfBytes = (int)content.TotalSizeInBytes;
             }
@@ -63,13 +59,13 @@ namespace JVermeulen.TCP.Encoders
 
         public static byte[] Parse(WsFrame frame)
         {
-            SplitPayloadLength(frame.PayloadLength, out byte length, out UInt16? extended1, out UInt64? extended2);
+            if (frame.Opcode == WsFrameType.Handshake)
+                return frame.Payload;
 
             var index = 0;
-            var size = frame.CalculateTotalSizeInBytes();
-            var data = new byte[size];
+            var data = new byte[frame.TotalSizeInBytes];
 
-            data[index] = 0b0_0_0_0_0000; // fin | rsv1 | rsv2 | rsv3 | [ OPCODE | OPCODE | OPCODE | OPCODE ]
+            data[index] = 0b0_0_0_0_0000; // FIN (1 byte) | RSV1 (1 byte) | RSV2 (1 byte) | RSV3 (1 byte) | Opcode (4 bytes) 
             if (frame.FIN)
                 data[index] |= 0b1_0_0_0_0000;
             if (frame.RSV1)
@@ -82,14 +78,20 @@ namespace JVermeulen.TCP.Encoders
                 data[index] += (byte)frame.Opcode;
             index++;
 
-            data[index] = 0b0_0000000;
+            if (frame.Payload == null)
+                return data;
+
+            SplitPayloadLength(frame.Payload.Length, out byte payloadSize, out UInt16? extended1, out UInt64? extended2);
+
+            data[index] = 0b0_0000000; // Mask (1 byte) | Size (7 bytes)
             if (frame.Mask != null)
                 data[index] |= 0b1_0000000;
-            data[index] |= length;
+            data[index] |= payloadSize;
             index++;
 
             if (extended1.HasValue)
             {
+                // Extended size (2 bytes)
                 BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(index), extended1.Value);
 
                 index += 2;
@@ -97,6 +99,7 @@ namespace JVermeulen.TCP.Encoders
 
             if (extended2.HasValue)
             {
+                // Extended size (4 bytes)
                 BinaryPrimitives.WriteUInt64BigEndian(data.AsSpan(index), extended1.Value);
 
                 index += 4;
@@ -104,6 +107,7 @@ namespace JVermeulen.TCP.Encoders
 
             if (frame.Mask != null)
             {
+                // Mask (4 bytes)
                 Array.Copy(frame.Mask, 0, data, index, frame.Mask.Length);
 
                 index += frame.Mask.Length;
@@ -111,6 +115,7 @@ namespace JVermeulen.TCP.Encoders
 
             if (frame.Payload != null)
             {
+                // Payload (variable)
                 Array.Copy(frame.Payload, 0, data, index, frame.Payload.Length);
             }
 
@@ -141,8 +146,9 @@ namespace JVermeulen.TCP.Encoders
                 Opcode = (WsFrameType)(data[0] & 0x0f),
 
                 Mask = (data[1] & 0x80) == 0x80 ? new byte[maskSize] : null,
-                PayloadLength = (byte)(data[1] & 0x7f),
             };
+
+            long payloadLength = (byte)(data[1] & 0x7f);
 
             if (frame.RSV1)
                 throw new NotSupportedException($"Unable to parse WebSocket frame. RSV1 is False.");
@@ -151,15 +157,15 @@ namespace JVermeulen.TCP.Encoders
             if (frame.RSV3)
                 throw new NotSupportedException($"Unable to parse WebSocket frame. RSV3 is False.");
 
-            if (frame.PayloadLength == 126)
+            if (payloadLength == 126)
             {
-                frame.PayloadLength = BinaryPrimitives.ReadUInt16BigEndian(data.Slice(index));
+                payloadLength = BinaryPrimitives.ReadUInt16BigEndian(data.Slice(index));
 
                 index += 2;
             }
-            else if (frame.PayloadLength == 127)
+            else if (payloadLength == 127)
             {
-                frame.PayloadLength = BinaryPrimitives.ReadInt64BigEndian(data.Slice(index));
+                payloadLength = BinaryPrimitives.ReadInt64BigEndian(data.Slice(index));
 
                 index += 8;
             }
@@ -173,20 +179,22 @@ namespace JVermeulen.TCP.Encoders
             }
 
             //Validate max PayloadLength
-            if (frame.PayloadLength > int.MaxValue)
-                throw new NotSupportedException($"Unable to parse WebSocket frame. PayloadLength ({frame.PayloadLength}) is higher then {int.MaxValue}.");
+            if (payloadLength > int.MaxValue)
+                throw new NotSupportedException($"Unable to parse WebSocket frame. PayloadLength ({payloadLength}) is higher then {int.MaxValue}.");
 
             //Read content and decode with mask if set in header
-            frame.Payload = data.Slice(index, (int)frame.PayloadLength).ToArray();
+            frame.Payload = data.Slice(index, (int)payloadLength).ToArray();
 
             //Unmaskif set in header
             if (frame.Mask != null)
             {
-                for (long i = 0; i < frame.PayloadLength; i++)
+                for (long i = 0; i < payloadLength; i++)
                     frame.Payload[i] = (byte)(frame.Payload[i] ^ frame.Mask[i % 4]);
             }
 
-            frame.TotalSizeInBytes = index + (int)frame.PayloadLength;
+            var totalSizeInBytes = index + (int)payloadLength;
+            if (frame.TotalSizeInBytes != totalSizeInBytes)
+                throw new ApplicationException($"Unable to parse WebSocket frame. Calculated size ({frame.TotalSizeInBytes}) does not equal frame size ({totalSizeInBytes}).");
 
             return frame;
         }

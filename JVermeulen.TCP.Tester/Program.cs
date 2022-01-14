@@ -17,7 +17,10 @@ namespace JVermeulen.TCP.Tester
         {
             try
             {
-                var server = new WsServer(WsTcpEncoder.Default, 8080);
+                var server = new WsServer(WsTcpEncoder.Default, 8080)
+                {
+                    OptionEchoMessages = true,
+                };
                 server.Start();
 
                 Console.WriteLine("Done!");
