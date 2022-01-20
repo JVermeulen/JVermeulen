@@ -1,7 +1,6 @@
 ﻿using JVermeulen.Processing;
 using JVermeulen.TCP.Core;
-using JVermeulen.TCP.Encoders;
-using JVermeulen.TCP.WebSocket;
+using JVermeulen.WebSockets;
 using System;
 using System.Text;
 using System.Threading;
@@ -11,17 +10,23 @@ namespace JVermeulen.TCP.Tester
 {
     class Program
     {
-        private static int counter = 0;
-
         static void Main(string[] args)
         {
             try
             {
-                var server = new WsServer(WsTcpEncoder.Default, 8080)
-                {
-                    OptionEchoMessages = true,
-                };
+                var server = new WsServer(WsEncoder.TextEncoder, 8080);
+                server.OptionBroadcastMessages = true;
+                server.OptionEchoMessages = true;
                 server.Start();
+
+                Task.Delay(1000).Wait();
+
+                var client = new WsClient(WsEncoder.TextEncoder, "127.0.0.1", 8080);
+                client.Start();
+
+                Task.Delay(1000).Wait();
+                
+                client.Stop();
 
                 Console.WriteLine("Done!");
                 Console.ReadKey();
@@ -32,33 +37,6 @@ namespace JVermeulen.TCP.Tester
                 Console.WriteLine(ex.ToString());
                 Console.ReadKey();
             }
-        }
-
-        private static void CreateClientAsync()
-        {
-            Task.Run(CreateClient).ConfigureAwait(false);
-        }
-
-        private static void CreateClient()
-        {
-            using (var connector = new TcpConnector(6000, "127.0.0.1"))
-            {
-                connector.ClientConnected += (s, e) => Console.WriteLine($"Client {e} connected.");
-                connector.ClientConnected += (s, e) => e.Send(TestData());
-                connector.ClientDisconnected += (s, e) => Console.WriteLine($"Client {e} disconnected.");
-                connector.ExceptionOccured += (s, e) => Console.WriteLine($"Client error: {e}");
-                connector.Start(false);
-
-                Task.Delay(60000).Wait();
-            }
-        }
-
-        private static byte[] TestData()
-        {
-            return new byte[] { 49, 00 };
-            //var value = Interlocked.Increment(ref counter);
-
-            //return Encoding.UTF8.GetBytes(value.ToString());
         }
     }
 }

@@ -111,6 +111,29 @@ namespace JVermeulen.TCP.Core
             Data = new Memory<byte>(Buffer, Index, Length);
         }
 
+        public void Add(ArraySegment<byte> array, int index, int length)
+        {
+            if (Buffer.Length - Index - Length >= length)
+            {
+                array.Slice(index, length).CopyTo(Buffer, Index + Length);
+            }
+            else
+            {
+                var buffer = GetNewBuffer(Length + length);
+
+                Array.Copy(Buffer, Index, buffer, 0, Length);
+                array.Slice(index, length).CopyTo(buffer, Length);
+
+                ArrayPool<byte>.Shared.Return(Buffer);
+                Buffer = buffer;
+
+                Index = 0;
+            }
+
+            Length += length;
+            Data = new Memory<byte>(Buffer, Index, Length);
+        }
+
         /// <summary>
         /// Remove the given number of bytes from the start of the buffer.
         /// </summary>

@@ -102,6 +102,11 @@ namespace JVermeulen.TCP.Core
         public bool OptionRaiseSentData { get; set; } = false;
 
         /// <summary>
+        /// When true, receive data from client.
+        /// </summary>
+        public bool OptionReceiveEnabled { get; set; } = true;
+
+        /// <summary>
         /// The constructor of this class.
         /// </summary>
         /// <param name="e">The SocketAsyncEventArgs from the server or client.</param>
@@ -139,6 +144,7 @@ namespace JVermeulen.TCP.Core
                 IsStarted = true;
 
                 StateChanged?.Invoke(this, true);
+
                 WaitForReceive();
             }
         }
@@ -201,7 +207,7 @@ namespace JVermeulen.TCP.Core
         /// </summary>
         private void WaitForReceive()
         {
-            if (Socket.Connected)
+            if (OptionReceiveEnabled && Socket.Connected)
             {
                 if (!Socket.ReceiveAsync(ReceiveEventArgs))
                     OnReceived(ReceiveEventArgs);
@@ -224,7 +230,7 @@ namespace JVermeulen.TCP.Core
 
                         Send(data);
                     }
-                    
+
                     if (OptionRaiseReceivedData)
                     {
                         ReceiveBuffer.Add(e.Buffer, e.Offset, e.BytesTransferred);

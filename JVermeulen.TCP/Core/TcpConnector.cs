@@ -60,6 +60,11 @@ namespace JVermeulen.TCP.Core
         public EventHandler<TcpConnection> ClientDisconnected { get; set; }
 
         /// <summary>
+        /// When true, receive data from clients.
+        /// </summary>
+        public bool OptionReceiveData { get; set; } = true;
+
+        /// <summary>
         /// The constructor of this class.
         /// </summary>
         /// <param name="port">The port number of the server.</param>
@@ -158,7 +163,7 @@ namespace JVermeulen.TCP.Core
         private void Accept(SocketAsyncEventArgs e)
         {
             e.AcceptSocket = null;
-
+            
             if (!Socket.AcceptAsync(e))
                 OnConnected(this, e);
         }
@@ -173,6 +178,7 @@ namespace JVermeulen.TCP.Core
             if (e.SocketError == SocketError.Success)
             {
                 var connection = new TcpConnection(e);
+                connection.OptionReceiveEnabled = OptionReceiveData;
                 connection.StateChanged += OnConnectionStateChanged;
                 connection.Start();
 

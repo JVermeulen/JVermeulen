@@ -58,10 +58,13 @@ namespace JVermeulen.TCP.WebSocket
             Send(WsFrame.PingFrame, s => s.RemoteAddress == clientAddress);
         }
 
-        protected void OnHandshake(string clientAddress, string content)
+        protected Guid OnHandshake(string clientAddress, string content)
         {
-            var clientKey = content.Replace("ey:", "`").Split('`')[1].Replace("\r", "").Split('\n')[0].Trim();
-            var acceptKey = AcceptKey(clientKey, ServerKey);
+            var clientKeyAsString = content.Replace("ey:", "`").Split('`')[1].Replace("\r", "").Split('\n')[0].Trim();
+            var clientKeyAsBytes = Convert.FromBase64String(clientKeyAsString);
+            var clientKeyAsGuid = new Guid(clientKeyAsBytes);
+
+            var acceptKey = AcceptKey(clientKeyAsString, ServerKey);
             var response = AcceptResponse(acceptKey);
             var message = new WsFrame
             {
@@ -70,6 +73,8 @@ namespace JVermeulen.TCP.WebSocket
             };
 
             Send(message, s => s.RemoteAddress == clientAddress);
+
+            return clientKeyAsGuid;
         }
 
         private string AcceptKey(string clientKey, string serverKey)

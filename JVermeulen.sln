@@ -19,7 +19,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JVermeulen.MQTT", "JVermeul
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JVermeulen.App.Windows", "JVermeulen.App.Windows\JVermeulen.App.Windows.csproj", "{93194F15-4274-4887-9EB8-875F8AD2BFB3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JVermeulen.Web", "JVermeulen.Web\JVermeulen.Web.csproj", "{B9164037-31C8-466B-B360-3E3665075A99}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JVermeulen.Web", "JVermeulen.Web\JVermeulen.Web.csproj", "{B9164037-31C8-466B-B360-3E3665075A99}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JVermeulen.WebSockets", "JVermeulen.WebSockets\JVermeulen.WebSockets.csproj", "{D5F8FA3D-A39F-49C2-81A5-CD857C3DA034}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -63,6 +65,10 @@ Global
 		{B9164037-31C8-466B-B360-3E3665075A99}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B9164037-31C8-466B-B360-3E3665075A99}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B9164037-31C8-466B-B360-3E3665075A99}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D5F8FA3D-A39F-49C2-81A5-CD857C3DA034}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D5F8FA3D-A39F-49C2-81A5-CD857C3DA034}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D5F8FA3D-A39F-49C2-81A5-CD857C3DA034}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D5F8FA3D-A39F-49C2-81A5-CD857C3DA034}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
