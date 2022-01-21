@@ -4,7 +4,6 @@ using JVermeulen.TCP.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -14,87 +13,68 @@ namespace JVermeulen.WebSockets
 {
     public class WsSession : Actor
     {
-        public TcpConnection Connection { get; set; }
-        public WebSocket Socket { get; set; }
-        private NetworkStream Stream { get; set; }
+        /// <summary>
+        /// A global unique Id.
+        /// </summary>
+        private static long GlobalSessionId;
+
+        /// <summary>
+        /// A unique Id for this session.
+        /// </summary>
+        public long SessionId { get; private set; }
+
+        public bool IsServer { get; private set; }
+        public string ServerUrl { get; private set; }
+        public WebSocket Socket { get; private set; }
         private ArraySegment<byte> Buffer { get; set; }
         private TcpBuffer ReceiveBuffer { get; set; }
 
         public ITcpEncoder<WsContent> Encoder { get; private set; }
         public MessageBox<ContentMessage<WsContent>> MessageBox { get; private set; }
 
-        public bool IsServer => Connection != null && Connection.IsServer;
         public bool IsConnected => Socket != null && Socket.State == WebSocketState.Open;
-        public string LocalAddress => Connection?.LocalAddress;
-        public string RemoteAddress => Connection?.RemoteAddress;
 
         public TimeSpan OptionReceiveTimeout { get; set; } = TimeSpan.FromSeconds(3600);
         public TimeSpan OptionSendTimeout { get; set; } = TimeSpan.FromSeconds(15);
         public TimeSpan OptionPingInterval { get; set; } = TimeSpan.FromSeconds(15);
-        public int OptionBufferSize { get; set; } = 1024;
+        public int OptionBufferSize { get; set; } = 8 * 1024;
 
-        public WsSession(TcpConnection connection, ITcpEncoder<WsContent> encoder) : base(TimeSpan.FromSeconds(60))
+        public WsSession(ITcpEncoder<WsContent> encoder, bool isServer, string serverUrl, WebSocket socket) : base(TimeSpan.FromSeconds(60))
         {
+            SessionId = Interlocked.Increment(ref GlobalSessionId);
+
+            Socket = socket;
             Encoder = encoder;
+            IsServer = isServer;
+            ServerUrl = serverUrl;
+
             MessageBox = new MessageBox<ContentMessage<WsContent>>();
-
-            Connection = connection;
-            Connection.DataReceived += Connection_DataReceived;
-            Connection.ExceptionOccured += OnExceptionOccured;
-
-            Stream = new NetworkStream(Connection.Socket);
-        }
-
-        private void Connection_DataReceived(object sender, TcpBuffer e)
-        {
-            var request = Encoding.UTF8.GetString(e.Data.Span);
-
-            if (WsHandshake.ValidateRequest(request, out string response, out Guid? requestId))
-            {
-                Connection.OptionReceiveEnabled = false;
-
-                var data = Encoding.UTF8.GetBytes(response);
-
-                Connection.Send(data);
-
-                WaitForReceive().ConfigureAwait(false);
-            }
-            else
-            {
-                throw new WebSocketException(WebSocketError.NotAWebSocket);
-            }
-        }
-
-        protected override void OnStarting()
-        {
-            base.OnStarting();
-
-            Connection?.Start();
-
-            if (Socket == null)
-                Socket = WebSocket.CreateFromStream(Stream, IsServer, null, OptionPingInterval);
-            
-            Buffer = IsServer ? WebSocket.CreateServerBuffer(OptionBufferSize) : WebSocket.CreateClientBuffer(OptionBufferSize, OptionBufferSize);
+            Buffer = WebSocket.CreateServerBuffer(OptionBufferSize);
             ReceiveBuffer = new TcpBuffer();
+        }
 
-            if (!IsServer)
-                WaitForReceive().ConfigureAwait(false);
+        protected override void OnStarted()
+        {
+            base.OnStarted();
+
+            WaitForReceive().ConfigureAwait(false);
         }
 
         protected override void OnStopping()
         {
             base.OnStopping();
 
-            Connection?.Stop();
-
-            ReceiveBuffer.Dispose();
+            using (var timeout = new CancellationTokenSource(OptionSendTimeout))
+            {
+                Socket?.CloseAsync(WebSocketCloseStatus.NormalClosure, null, timeout.Token);
+            }
         }
 
         private async Task WaitForReceive()
         {
             try
             {
-                if (IsConnected)
+                while (IsConnected)
                 {
                     WebSocketReceiveResult receiveResult;
 
@@ -109,8 +89,6 @@ namespace JVermeulen.WebSockets
 
                         if (receiveResult.EndOfMessage)
                             OnReceived(ReceiveBuffer);
-
-                        await WaitForReceive();
                     }
                     else
                     {
@@ -130,18 +108,10 @@ namespace JVermeulen.WebSockets
             {
                 buffer.Remove(numberOfBytes);
 
-                var message = new ContentMessage<WsContent>(RemoteAddress, LocalAddress, true, false, content, numberOfBytes - Encoder.NettoDelimeterLength);
+                var message = new ContentMessage<WsContent>(SessionId.ToString(), ServerUrl, true, false, content, numberOfBytes - Encoder.NettoDelimeterLength);
 
                 MessageBox.Add(message);
             }
-        }
-
-        public void Handshake()
-        {
-            var request = WsHandshake.CreateHandshake(RemoteAddress);
-            var content = new WsContent(request);
-
-            Connection.Send(content.Binary);
         }
 
         public async Task Send(WsContent content)
@@ -170,7 +140,9 @@ namespace JVermeulen.WebSockets
                     }
                 }
 
-                var message = new ContentMessage<WsContent>(LocalAddress, RemoteAddress, false, false, content, data.Length);
+                var message = new ContentMessage<WsContent>(ServerUrl, SessionId.ToString(), false, false, content, data.Length);
+
+                MessageBox.Add(message);
             }
             catch (Exception ex)
             {
@@ -187,21 +159,14 @@ namespace JVermeulen.WebSockets
 
         public override string ToString()
         {
-            if (IsServer)
-                return $"WS Session ({LocalAddress} <= {RemoteAddress})";
-            else
-                return $"WS Session ({LocalAddress} => {RemoteAddress})";
+            return $"WebSocket Session {SessionId} ({ServerUrl})";
         }
 
         public override void Dispose()
         {
-            base.Dispose();
+            Stop();
 
-            if (Connection != null)
-            {
-                Connection.DataReceived -= Connection_DataReceived;
-                Connection.ExceptionOccured -= OnExceptionOccured;
-            }
+            base.Dispose();
         }
     }
 }

@@ -29,7 +29,7 @@ namespace JVermeulen.TCP.Tester
 
         private static void ServerClientTest()
         {
-            using (var server = new WsServer2(WsEncoder.Text, "http://localhost:8082/"))
+            using (var server = new WsServer(WsEncoder.Text, "http://localhost:8082/"))
             {
                 server.OptionBroadcastMessages = true;
                 server.OptionEchoMessages = true;
@@ -37,7 +37,7 @@ namespace JVermeulen.TCP.Tester
 
                 Task.Delay(1000).Wait();
 
-                using (var client = new WsClient2(WsEncoder.Text, "ws://localhost:8082/"))
+                using (var client = new WsClient(WsEncoder.Text, "ws://localhost:8082/"))
                 {
                     client.Start();
 

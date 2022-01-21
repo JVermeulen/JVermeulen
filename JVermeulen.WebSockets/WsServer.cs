@@ -1,103 +1,157 @@
 ﻿using JVermeulen.Processing;
 using JVermeulen.TCP;
-using JVermeulen.TCP.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace JVermeulen.WebSockets
 {
     public class WsServer : Actor
     {
-        public TcpConnector Acceptor { get; private set; }
-
-        public ITcpEncoder<WsContent> Encoder { get; private set; }
-        public string LocalAddress { get; private set; }
+        private HttpListener Listener { get; set; }
         public List<WsSession> Sessions { get; private set; }
 
+        public ITcpEncoder<WsContent> Encoder { get; private set; }
+        public string ServerUrl => Listener.Prefixes.FirstOrDefault();
+
+        public TimeSpan OptionKeepAliveInterval { get; set; } = TimeSpan.FromSeconds(15);
         public bool OptionBroadcastMessages { get; set; } = false;
         public bool OptionEchoMessages { get; set; } = false;
 
-        public WsServer(ITcpEncoder<WsContent> encoder, int port) : this(encoder, new IPEndPoint(IPAddress.Any, port))
-        {
-            //
-        }
-
-        public WsServer(ITcpEncoder<WsContent> encoder, IPEndPoint serverEndpoint) : base(TimeSpan.FromSeconds(5))
+        public WsServer(ITcpEncoder<WsContent> encoder, string url)
         {
             Encoder = encoder;
 
-            Acceptor = new TcpConnector(serverEndpoint);
-            Acceptor.ClientConnected += OnClientConnected;
-            Acceptor.ClientDisconnected += OnClientDisconnected;
-
-            LocalAddress = serverEndpoint.ToString();
+            Listener = new HttpListener();
+            Listener.Prefixes.Add(url);
 
             Sessions = new List<WsSession>();
         }
 
         protected override void OnStarting()
         {
-            base.OnStarting();
+            Listener.Start();
+        }
 
-            Acceptor.Start(true);
+        protected override void OnStarted()
+        {
+            Console.WriteLine($"[Server] Started: {ServerUrl}");
+
+            WaitForAcceptAsync().ConfigureAwait(false);
         }
 
         protected override void OnStopping()
         {
             base.OnStopping();
 
-            Acceptor.Stop();
+            Listener.Stop();
         }
 
-        protected virtual void OnClientConnected(object sender, TcpConnection e)
+        protected override void OnStopped()
         {
-            Console.WriteLine($"Client connected: {e}");
+            base.OnStopped();
 
-            var session = new WsSession(e, Encoder);
-            session.MessageBox.SubscribeSafe(OnMessageReceived);
-            session.Start();
-
-            Sessions.Add(session);
+            Console.WriteLine($"[Server] Stopped: {ServerUrl}");
         }
 
-        protected virtual void OnClientDisconnected(object sender, TcpConnection e)
+        private async Task WaitForAcceptAsync()
         {
-            Console.WriteLine($"Client disconnected: {e}");
+            try
+            {
+                while (Status == SessionStatus.Started)
+                {
+                    var context = await Listener.GetContextAsync();
 
-            var session = Sessions.Where(s => s.Connection == e).FirstOrDefault();
+                    await OnAccept(context);
+                }
+            }
+            catch (HttpListenerException httpListenerException)
+            {
+                if (httpListenerException.ErrorCode == 995)
+                    Stop();
+                else
+                    throw;
+            }
+            catch
+            {
+                throw;
+            }
+        }
 
-            if (session != null)
-                Sessions.Remove(session);
+        private async Task OnAccept(HttpListenerContext context)
+        {
+            try
+            {
+                if (!context.Request.IsWebSocketRequest)
+                    throw new ApplicationException("Request is not a WebSocket request.");
+
+                var wsContext = await context.AcceptWebSocketAsync(null, OptionKeepAliveInterval);
+
+                var session = new WsSession(Encoder, true, ServerUrl, wsContext.WebSocket);
+                session.Outbox.SubscribeSafe(OnSessionMessage);
+                session.MessageBox.SubscribeSafe(OnMessageReceived);
+
+                Sessions.Add(session);
+
+                session.Start();
+            }
+            catch (Exception ex)
+            {
+                context.Response.StatusCode = 500;
+                //TODO: replace with generic message
+                context.Response.StatusDescription = ex.Message;
+                context.Response.Close();
+            }
+        }
+
+        private void OnSessionMessage(SessionMessage message)
+        {
+            if (message.Sender is WsSession session)
+            {
+                if (message.Content is SessionStatus status)
+                {
+                    if (status == SessionStatus.Started)
+                        Console.WriteLine($"[Server] Connected: {session}");
+                    else if (status == SessionStatus.Stopped)
+                        Console.WriteLine($"[Server] Disconnected: {session}");
+                }
+            }
         }
 
         private void OnMessageReceived(ContentMessage<WsContent> message)
         {
+            Console.ResetColor();
+
             if (message.IsIncoming)
             {
-                Console.WriteLine($"Message received: {message.Content}");
+                Console.WriteLine($"[Server] Message received: {message.Content}");
 
-                if (OptionBroadcastMessages)
-                    Broadcast(message.Content, message.SenderAddress);
+                if (long.TryParse(message.SenderAddress, out long sessionId))
+                {
+                    if (OptionBroadcastMessages)
+                        Broadcast(message.Content, sessionId);
 
-                if (OptionEchoMessages)
-                    Echo(message.Content, message.SenderAddress);
+                    if (OptionEchoMessages)
+                        Echo(message.Content, sessionId);
+                }
             }
             else
             {
-                Console.WriteLine($"Message sent: {message.Content}");
+                Console.WriteLine($"[Server] Message sent: {message.Content}");
             }
         }
 
-        public void Echo(WsContent content, string sender)
+        public void Echo(WsContent content, long sender)
         {
-            Send(content, s => s.IsConnected && s.RemoteAddress == sender);
+            Send(content, s => s.IsConnected && s.SessionId == sender);
         }
 
-        public void Broadcast(WsContent content, string sender)
+        public void Broadcast(WsContent content, long sender)
         {
-            Send(content, s => s.IsConnected && (sender == null || s.RemoteAddress != sender));
+            Send(content, s => s.IsConnected && s.SessionId != sender);
         }
 
         public void Send(WsContent content, Func<WsSession, bool> query)
@@ -105,14 +159,6 @@ namespace JVermeulen.WebSockets
             var sessions = Sessions.Where(s => s.Status == SessionStatus.Started).Where(query).ToList();
 
             sessions.ForEach(s => s.Send(content).ConfigureAwait(false));
-        }
-
-        protected override void OnHeartbeat(Heartbeat heartbeat)
-        {
-            base.OnHeartbeat(heartbeat);
-
-            if (Acceptor != null && !Acceptor.IsStarted)
-                Acceptor.Start(true);
         }
     }
 }
