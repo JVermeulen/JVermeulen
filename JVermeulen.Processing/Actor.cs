@@ -192,6 +192,18 @@ namespace JVermeulen.Processing
         }
 
         /// <summary>
+        /// Create a combined message from the given exception and inner exceptions.
+        /// </summary>
+        /// <param name="ex">The exception to use.</param>
+        public string ExceptionToString(Exception ex)
+        {
+            if (ex.InnerException == null)
+                return ex.Message;
+            else
+                return $"{ex.Message}; {ExceptionToString(ex.InnerException)}";
+        }
+
+        /// <summary>
         /// Disposes this object.
         /// </summary>
         public override void Dispose()

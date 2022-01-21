@@ -125,6 +125,12 @@
             <param name="onNext">What to do with messages received from Outbox.</param>
             <param name="onError">What to do with errors occured in the onNext action.</param>
         </member>
+        <member name="M:JVermeulen.Processing.Actor.ExceptionToString(System.Exception)">
+            <summary>
+            Create a combined message from the given exception and inner exceptions.
+            </summary>
+            <param name="ex">The exception to use.</param>
+        </member>
         <member name="M:JVermeulen.Processing.Actor.Dispose">
             <summary>
             Disposes this object.

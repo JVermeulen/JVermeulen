@@ -6,23 +6,23 @@ namespace JVermeulen.WebSockets
 {
     public class WsContent
     {
-        public readonly WebSocketMessageType MessageType;
+        public readonly bool IsText;
         public readonly byte[] Binary;
         public readonly string Text;
 
         public WsContent(byte[] data, bool isText = false)
         {
-            MessageType = isText ? WebSocketMessageType.Text : WebSocketMessageType.Binary;
+            IsText = isText;
 
             Binary = data ?? throw new ArgumentNullException(nameof(data));
 
-            if (isText)
+            if (IsText)
                 Text = Encoding.UTF8.GetString(data);
         }
 
         public WsContent(string content)
         {
-            MessageType = WebSocketMessageType.Text;
+            IsText = true;
 
             Text = content;
 
@@ -31,7 +31,7 @@ namespace JVermeulen.WebSockets
 
         public override string ToString()
         {
-            if (MessageType == WebSocketMessageType.Text)
+            if (IsText)
                 return $"Text ({Binary.Length} bytes)";
             else
                 return $"Binary ({Binary.Length} bytes)";

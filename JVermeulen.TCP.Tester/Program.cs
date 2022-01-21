@@ -14,7 +14,7 @@ namespace JVermeulen.TCP.Tester
         {
             try
             {
-                ServerClientTest();
+                ClientServerTest();
 
                 Console.WriteLine("Done!");
                 Console.ReadKey();
@@ -31,6 +31,7 @@ namespace JVermeulen.TCP.Tester
         {
             using (var server = new WsServer(WsEncoder.Text, "http://localhost:8082/"))
             {
+                server.OptionLogToConsole = true;
                 server.OptionBroadcastMessages = true;
                 server.OptionEchoMessages = true;
                 server.Start();
@@ -39,6 +40,7 @@ namespace JVermeulen.TCP.Tester
 
                 using (var client = new WsClient(WsEncoder.Text, "ws://localhost:8082/"))
                 {
+                    client.OptionLogToConsole = true;
                     client.Start();
 
                     Task.Delay(1000).Wait();
@@ -49,6 +51,56 @@ namespace JVermeulen.TCP.Tester
                 }
 
                 Task.Delay(60000).Wait();
+            }
+        }
+
+        private static void ClientServerTest()
+        {
+            using (var client = new WsClient(WsEncoder.Text, "ws://localhost:8082/"))
+            {
+                client.OptionLogToConsole = true;
+
+                Task.Delay(1000).Wait();
+
+                using (var server = new WsServer(WsEncoder.Text, "http://localhost:8082/"))
+                {
+                    server.OptionLogToConsole = true;
+                    server.OptionBroadcastMessages = true;
+                    server.OptionEchoMessages = true;
+                    server.Start();
+
+                    Task.Delay(1000).Wait();
+                    
+                    client.Start();
+
+                    Task.Delay(1000).Wait();
+
+                    client.Send("1");
+
+                    Task.Delay(1000).Wait();
+                }
+
+                Task.Delay(10000).Wait();
+
+                client.Send("12");
+
+                Task.Delay(10000).Wait();
+
+                using (var server = new WsServer(WsEncoder.Text, "http://localhost:8082/"))
+                {
+                    server.OptionLogToConsole = true;
+                    server.OptionBroadcastMessages = true;
+                    server.OptionEchoMessages = true;
+                    server.Start();
+
+                    Task.Delay(1000).Wait();
+
+                    client.Send("123");
+
+                    Task.Delay(1000).Wait();
+                }
+
+                Task.Delay(5000).Wait();
             }
         }
     }

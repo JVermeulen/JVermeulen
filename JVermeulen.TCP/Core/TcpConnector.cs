@@ -178,7 +178,6 @@ namespace JVermeulen.TCP.Core
             if (e.SocketError == SocketError.Success)
             {
                 var connection = new TcpConnection(e);
-                connection.OptionReceiveEnabled = OptionReceiveData;
                 connection.StateChanged += OnConnectionStateChanged;
                 connection.Start();
 

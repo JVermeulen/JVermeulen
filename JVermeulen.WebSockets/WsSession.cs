@@ -39,6 +39,8 @@ namespace JVermeulen.WebSockets
         public TimeSpan OptionPingInterval { get; set; } = TimeSpan.FromSeconds(15);
         public int OptionBufferSize { get; set; } = 8 * 1024;
 
+        private CancellationTokenSource ReceiveCancellation { get; set; }
+
         public WsSession(ITcpEncoder<WsContent> encoder, bool isServer, string serverUrl, WebSocket socket) : base(TimeSpan.FromSeconds(60))
         {
             SessionId = Interlocked.Increment(ref GlobalSessionId);
@@ -64,6 +66,8 @@ namespace JVermeulen.WebSockets
         {
             base.OnStopping();
 
+            ReceiveCancellation.Cancel();
+
             using (var timeout = new CancellationTokenSource(OptionSendTimeout))
             {
                 Socket?.CloseAsync(WebSocketCloseStatus.NormalClosure, null, timeout.Token);
@@ -74,14 +78,13 @@ namespace JVermeulen.WebSockets
         {
             try
             {
-                while (IsConnected)
+                while (Status == SessionStatus.Started && IsConnected)
                 {
                     WebSocketReceiveResult receiveResult;
 
-                    using (var timeout = new CancellationTokenSource(OptionReceiveTimeout))
-                    {
-                        receiveResult = await Socket.ReceiveAsync(Buffer, timeout.Token);
-                    }
+                    ReceiveCancellation = new CancellationTokenSource(OptionReceiveTimeout);
+
+                    receiveResult = await Socket.ReceiveAsync(Buffer, ReceiveCancellation.Token);
 
                     if (receiveResult.Count != 0 || receiveResult.CloseStatus == WebSocketCloseStatus.Empty)
                     {
@@ -98,6 +101,8 @@ namespace JVermeulen.WebSockets
             }
             catch (Exception ex)
             {
+                Stop();
+
                 OnExceptionOccured(this, ex);
             }
         }
@@ -114,12 +119,12 @@ namespace JVermeulen.WebSockets
             }
         }
 
-        public async Task Send(WsContent content)
+        public async Task<bool> Send(WsContent content)
         {
             try
             {
                 if (!IsConnected)
-                    throw new ApplicationException("Unable to send WebSocket content. Client is not connected.");
+                    return false;
 
                 var data = Encoder.Encode(content);
 
@@ -136,17 +141,21 @@ namespace JVermeulen.WebSockets
 
                     using (var timeout = new CancellationTokenSource(OptionSendTimeout))
                     {
-                        await Socket.SendAsync(data, content.MessageType, endOfMessage, timeout.Token);
+                        await Socket.SendAsync(data, content.IsText ? WebSocketMessageType.Text : WebSocketMessageType.Binary, endOfMessage, timeout.Token);
                     }
                 }
 
                 var message = new ContentMessage<WsContent>(ServerUrl, SessionId.ToString(), false, false, content, data.Length);
 
                 MessageBox.Add(message);
+
+                return true;
             }
             catch (Exception ex)
             {
                 OnExceptionOccured(this, ex);
+
+                return false;
             }
         }
 
@@ -159,7 +168,7 @@ namespace JVermeulen.WebSockets
 
         public override string ToString()
         {
-            return $"WebSocket Session {SessionId} ({ServerUrl})";
+            return $"Session {SessionId} ({ServerUrl})";
         }
 
         public override void Dispose()

@@ -20,6 +20,7 @@ namespace JVermeulen.WebSockets
 
         public TimeSpan OptionConnectionTimeout { get; set; } = TimeSpan.FromSeconds(10);
         public bool OptionReconnectOnHeatbeat { get; set; } = true;
+        public bool OptionLogToConsole { get; set; } = false;
 
         public WsClient(ITcpEncoder<WsContent> encoder, string url)
         {
@@ -29,7 +30,7 @@ namespace JVermeulen.WebSockets
 
         protected override void OnStarted()
         {
-            WaitForConnectAsync().ConfigureAwait(false);
+            WaitForConnect();
         }
 
         protected override void OnStopping()
@@ -39,10 +40,15 @@ namespace JVermeulen.WebSockets
             Session?.Stop();
         }
 
+        private void WaitForConnect()
+        {
+            WaitForConnectAsync().ConfigureAwait(false);
+        }
+
         private async Task WaitForConnectAsync()
         {
             var client = new ClientWebSocket();
-            
+
             using (var timeout = new CancellationTokenSource(OptionConnectionTimeout))
             {
                 await client.ConnectAsync(new Uri(ServerUrl), timeout.Token);
@@ -68,12 +74,23 @@ namespace JVermeulen.WebSockets
         {
             if (message.Sender is WsSession session)
             {
-                if (message.Content is SessionStatus status)
+                if (message.Content is Exception ex)
+                {
+                    if (OptionLogToConsole)
+                        Console.WriteLine($"[Client {Id}] Exception: {ExceptionToString(ex)}");
+                }
+                else if (message.Content is SessionStatus status)
                 {
                     if (status == SessionStatus.Started)
-                        Console.WriteLine($"[Client] Connected: {session}");
+                    {
+                        if (OptionLogToConsole)
+                            Console.WriteLine($"[Client {Id}] Connected: {session}");
+                    }
                     else if (status == SessionStatus.Stopped)
-                        Console.WriteLine($"[Client] Disconnected: {session}");
+                    {
+                        if (OptionLogToConsole)
+                            Console.WriteLine($"[Client {Id}] Disconnected: {session}");
+                    }
                 }
             }
         }
@@ -83,9 +100,15 @@ namespace JVermeulen.WebSockets
             Console.ResetColor();
 
             if (message.IsIncoming)
-                Console.WriteLine($"[Client] Message received: {message.Content}");
+            {
+                if (OptionLogToConsole)
+                    Console.WriteLine($"[Client {Id}] Received: {message.Content}");
+            }
             else
-                Console.WriteLine($"[Client] Message sent: {message.Content}");
+            {
+                if (OptionLogToConsole)
+                    Console.WriteLine($"[Client {Id}] Sent: {message.Content}");
+            }
         }
 
         public void Send(byte[] value)
@@ -106,6 +129,14 @@ namespace JVermeulen.WebSockets
 
                 Session.Send(content).ConfigureAwait(false);
             }
+        }
+
+        protected override void OnHeartbeat(Heartbeat heartbeat)
+        {
+            base.OnHeartbeat(heartbeat);
+
+            if (Status == SessionStatus.Started && !IsConnected)
+                WaitForConnect();
         }
 
         public override void Dispose()
