@@ -1,4 +1,5 @@
-﻿using JVermeulen.Processing;
+﻿using JVermeulen.App;
+using JVermeulen.Processing;
 using JVermeulen.TCP;
 using JVermeulen.TCP.Core;
 using System;
@@ -19,7 +20,8 @@ namespace JVermeulen.WebSockets
         public ITcpEncoder<WsContent> Encoder { get; private set; }
         public WsSession Session { get; private set; }
         public bool IsConnected => Session != null && Session.IsConnected;
-        
+
+        public string Hostname { get; set; }
         protected IPEndPoint ServerEndPoint { get; set; }
         public string ServerAddress { get; private set; }
         protected IPEndPoint ClientEndPoint { get; set; }
@@ -28,9 +30,23 @@ namespace JVermeulen.WebSockets
         public TimeSpan OptionConnectionTimeout { get; set; } = TimeSpan.FromSeconds(10);
         public bool OptionReconnectOnHeatbeat { get; set; } = true;
 
-        public WsClient(ITcpEncoder<WsContent> encoder, string address, int port) : this(encoder, new IPEndPoint(IPAddress.Parse(address), port))
+        public WsClient(ITcpEncoder<WsContent> encoder, string address, int port)
         {
-            //
+            if (NetworkInfo.TryGetDnsInfo(address, AddressFamily.InterNetwork, out string hostname, out IPAddress[] ipAddresses))
+            {
+                ServerEndPoint = new IPEndPoint(ipAddresses[0], port);
+
+                Encoder = encoder;
+                ServerAddress = $"ws://{ServerEndPoint}";
+
+                Connector = new TcpConnector(ServerEndPoint);
+                Connector.ClientConnected += OnClientConnected;
+                Connector.ClientDisconnected += OnClientDisconnected;
+            }
+            else
+            {
+                //
+            }
         }
 
         public WsClient(ITcpEncoder<WsContent> encoder, IPEndPoint serverEndpoint) : base(TimeSpan.FromSeconds(15))
@@ -63,6 +79,7 @@ namespace JVermeulen.WebSockets
             Session = new WsSession(e, Encoder);
             Session.MessageBox.SubscribeSafe(OnMessageReceived);
             Session.Start();
+            Session.Handshake();
         }
 
         private void OnClientDisconnected(object sender, TcpConnection e)
@@ -89,6 +106,28 @@ namespace JVermeulen.WebSockets
 
             if (!IsConnected && Connector.IsStarted && OptionReconnectOnHeatbeat)
                 Connector.Start(false);
+        }
+
+        public void Send(byte[] value)
+        {
+            if (IsConnected)
+            {
+                var content = new WsContent(value);
+
+                Session.Send(content).ConfigureAwait(false);
+            }
+        }
+
+        public void Send(string value)
+        {
+            if (IsConnected)
+            {
+                var content = new WsContent(value);
+
+                Console.WriteLine($"Sending: {content}");
+
+                Session.Send(content).ConfigureAwait(false);
+            }
         }
 
         public override string ToString()

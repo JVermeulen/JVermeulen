@@ -10,16 +10,13 @@ namespace JVermeulen.WebSockets
         public readonly byte[] Binary;
         public readonly string Text;
 
-        public WsContent(byte[] data, WebSocketMessageType messageType)
+        public WsContent(byte[] data, bool isText = false)
         {
-            if (messageType == WebSocketMessageType.Close)
-                throw new NotSupportedException($"Unable to create WsContent. MessageType '{messageType}' is not suppored.");
-
-            MessageType = messageType;
+            MessageType = isText ? WebSocketMessageType.Text : WebSocketMessageType.Binary;
 
             Binary = data ?? throw new ArgumentNullException(nameof(data));
 
-            if (MessageType == WebSocketMessageType.Text)
+            if (isText)
                 Text = Encoding.UTF8.GetString(data);
         }
 
@@ -35,7 +32,7 @@ namespace JVermeulen.WebSockets
         public override string ToString()
         {
             if (MessageType == WebSocketMessageType.Text)
-                return Text;
+                return $"Text ({Binary.Length} bytes)";
             else
                 return $"Binary ({Binary.Length} bytes)";
         }

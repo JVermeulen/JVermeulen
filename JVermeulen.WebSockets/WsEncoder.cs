@@ -10,8 +10,8 @@ namespace JVermeulen.WebSockets
 {
     public class WsEncoder : ITcpEncoder<WsContent>
     {
-        public static WsEncoder TextEncoder = new WsEncoder(WebSocketMessageType.Text);
-        public static WsEncoder BinaryEncoder = new WsEncoder(WebSocketMessageType.Binary);
+        public static WsEncoder Text = new WsEncoder(WebSocketMessageType.Text);
+        public static WsEncoder Binary = new WsEncoder(WebSocketMessageType.Binary);
 
         public WebSocketMessageType MessageType { get; set; }
 
@@ -32,7 +32,7 @@ namespace JVermeulen.WebSockets
 
         public WsContent Decode(byte[] data)
         {
-            return new WsContent(data, MessageType);
+            return new WsContent(data, MessageType == WebSocketMessageType.Text);
         }
 
         public bool TryFindContent(Memory<byte> buffer, out WsContent content, out int numberOfBytes)

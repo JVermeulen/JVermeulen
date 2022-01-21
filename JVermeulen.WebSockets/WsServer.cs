@@ -11,6 +11,7 @@ namespace JVermeulen.WebSockets
     public class WsServer : Actor
     {
         public TcpConnector Acceptor { get; private set; }
+
         public ITcpEncoder<WsContent> Encoder { get; private set; }
         public string LocalAddress { get; private set; }
         public List<WsSession> Sessions { get; private set; }

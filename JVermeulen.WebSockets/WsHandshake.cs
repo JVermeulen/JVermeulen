@@ -7,10 +7,35 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.WebSockets
 {
-  public static  class WsHandshake
+    public static class WsHandshake
     {
         private static readonly string ServerKey = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
         private static readonly SHA1 CryptoServiceProvider = SHA1CryptoServiceProvider.Create();
+        private static readonly Random Random = new Random();
+
+        public static string CreateHandshake(string hostname)
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine($"GET / HTTP/1.1");
+            builder.AppendLine($"Host: {hostname}");
+            builder.AppendLine($"Upgrade: websocket");
+            builder.AppendLine($"Connection: Upgrade");
+            //builder.AppendLine($"Sec-WebSocket-Key: rT9ITnC50XqU/3Q7aQ15nA==");
+            builder.AppendLine($"Sec-WebSocket-Key: {CreateRandomKey()}");
+            builder.AppendLine($"Sec-WebSocket-Version: 13");
+            
+            return builder.ToString();
+        }
+
+        private static string CreateRandomKey()
+        {
+            var data = new byte[16];
+            Random.NextBytes(data);
+
+            var hash = CryptoServiceProvider.ComputeHash(data);
+
+            return Convert.ToBase64String(hash);
+        }
 
         public static bool ValidateRequest(string content, out string response, out Guid? requestId)
         {
@@ -24,7 +49,7 @@ namespace JVermeulen.WebSockets
                 requestId = new Guid(clientKeyAsBytes);
 
                 var acceptKey = AcceptKey(clientKeyAsString, ServerKey);
-                
+
                 response = AcceptResponse(acceptKey);
             }
             catch
