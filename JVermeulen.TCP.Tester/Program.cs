@@ -17,12 +17,12 @@ namespace JVermeulen.TCP.Tester
             {
                 //var serverUrl = "wss://demo.piesocket.com/v3/channel_1?api_key=oCdCMcMPQpbvNjUIzqtvF1d2X2okWpDQj4AwARJuAgtjhzKxVEjQU6IdCjwm&notify_self";
 
-                if (ReadArguments(args, out string type, out string hostname))
+                if (ReadArguments(args, out string type, out string address))
                 {
                     if (type == "server")
-                        StartAsServer(hostname);
+                        StartAsServer(address);
                     else if (type == "client")
-                        StartAsClient(hostname);
+                        StartAsClient(address);
                 }
 
                 Console.WriteLine("Done!");
@@ -36,12 +36,12 @@ namespace JVermeulen.TCP.Tester
             }
         }
 
-        private static bool ReadArguments(string[] args, out string type, out string hostname)
+        private static bool ReadArguments(string[] args, out string type, out string address)
         {
             try
             {
                 type = null;
-                hostname = null;
+                address = null;
 
                 string key = null;
                 string value = null;
@@ -58,12 +58,12 @@ namespace JVermeulen.TCP.Tester
 
                         if (key.Equals("--type", StringComparison.OrdinalIgnoreCase))
                             type = value.ToLower();
-                        if (key.Equals("--host", StringComparison.OrdinalIgnoreCase))
-                            hostname = value.ToLower();
+                        if (key.Equals("--address", StringComparison.OrdinalIgnoreCase))
+                            address = value.ToLower();
                     }
                 }
 
-                return type != null && hostname != null;
+                return type != null && address != null;
             }
             catch (Exception ex)
             {
@@ -71,9 +71,9 @@ namespace JVermeulen.TCP.Tester
             }
         }
 
-        private static void StartAsServer(string hostname)
+        private static void StartAsServer(string address)
         {
-            using (var server = new WsServer(WsEncoder.Text, false, hostname, 8082))
+            using (var server = new WsServer(WsEncoder.Text, address))
             {
                 server.OptionLogToConsole = true;
                 server.OptionBroadcastMessages = true;
@@ -91,9 +91,9 @@ namespace JVermeulen.TCP.Tester
             }
         }
 
-        private static void StartAsClient(string hostname)
+        private static void StartAsClient(string address)
         {
-            using (var client = new WsClient(WsEncoder.Text, false, hostname, 8082))
+            using (var client = new WsClient(WsEncoder.Text, address))
             {
                 client.OptionLogToConsole = true;
                 client.Start();

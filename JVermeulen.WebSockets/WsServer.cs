@@ -19,7 +19,6 @@ namespace JVermeulen.WebSockets
         public ITcpEncoder<WsContent> Encoder { get; private set; }
         public bool IsSecure { get; private set; }
         public Uri ServerUri { get; private set; }
-        public string Scheme => IsSecure ? "https" : "http";
 
         public bool IsListening => Listener?.IsListening ?? false;
         public bool IsAccepting { get; private set; }
@@ -29,13 +28,21 @@ namespace JVermeulen.WebSockets
         public bool OptionEchoMessages { get; set; } = false;
         public bool OptionLogToConsole { get; set; } = false;
 
-        public WsServer(ITcpEncoder<WsContent> encoder, bool isSecure, string hostname, int port, string path = "/") : base(TimeSpan.FromSeconds(15))
+        public WsServer(ITcpEncoder<WsContent> encoder, string serverUri) : base(TimeSpan.FromSeconds(15))
         {
             Encoder = encoder;
-            IsSecure = isSecure;
-            ServerUri = new UriBuilder(Scheme, hostname, port, path).Uri;
+
+            SetServerUri(serverUri);
 
             Sessions = new WsSessionManager();
+        }
+
+        private void SetServerUri(string serverUri)
+        {
+            var builder = new UriBuilder(serverUri);
+            IsSecure = builder.Scheme.Equals("wss", StringComparison.OrdinalIgnoreCase) || builder.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase);
+            builder.Scheme = IsSecure ? "https" : "http";
+            ServerUri = builder.Uri;
         }
 
         protected override void OnStarting()
@@ -203,7 +210,7 @@ namespace JVermeulen.WebSockets
             if (message.IsIncoming)
             {
                 if (OptionLogToConsole)
-                    Console.WriteLine($"[Server] Received from Session {message.DestinationAddress}: {message.ContentInBytes} bytes");
+                    Console.WriteLine($"[Server] Received: {message.ContentInBytes} bytes");
 
                 if (long.TryParse(message.SenderAddress, out long sessionId))
                 {
@@ -217,7 +224,7 @@ namespace JVermeulen.WebSockets
             else
             {
                 if (OptionLogToConsole)
-                    Console.WriteLine($"[Server] Sent to Session {message.DestinationAddress}: {message.ContentInBytes} bytes");
+                    Console.WriteLine($"[Server] Sent: {message.ContentInBytes} bytes");
             }
         }
 

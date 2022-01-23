@@ -18,7 +18,6 @@ namespace JVermeulen.WebSockets
         public ITcpEncoder<WsContent> Encoder { get; private set; }
         public bool IsSecure { get; private set; }
         public Uri ServerUri { get; private set; }
-        public string Scheme => IsSecure ? "wss" : "ws";
         public WsSessionManager Sessions { get; private set; }
         public bool IsConnected => Sessions.ConnectedCount() > 0;
         public bool IsConnecting { get; private set; }
@@ -27,22 +26,21 @@ namespace JVermeulen.WebSockets
         public bool OptionReconnectOnHeatbeat { get; set; } = true;
         public bool OptionLogToConsole { get; set; } = false;
 
-        public WsClient(ITcpEncoder<WsContent> encoder, bool isSecure, string serverUrl) : base(TimeSpan.FromSeconds(15))
+        public WsClient(ITcpEncoder<WsContent> encoder, string serverUri) : base(TimeSpan.FromSeconds(15))
         {
             Encoder = encoder;
-            IsSecure = isSecure;
-            ServerUri = new UriBuilder(serverUrl).Uri;
+
+            SetServerUri(serverUri);
 
             Sessions = new WsSessionManager();
         }
 
-        public WsClient(ITcpEncoder<WsContent> encoder, bool isSecure, string hostname, int port, string path = "/") : base(TimeSpan.FromSeconds(15))
+        private void SetServerUri(string serverUri)
         {
-            Encoder = encoder;
-            IsSecure = isSecure;
-            ServerUri = new UriBuilder(Scheme, hostname, port, path).Uri;
-
-            Sessions = new WsSessionManager();
+            var builder = new UriBuilder(serverUri);
+            IsSecure = builder.Scheme.Equals("wss", StringComparison.OrdinalIgnoreCase) || builder.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase);
+            builder.Scheme = IsSecure ? "wss" : "ws";
+            ServerUri = builder.Uri;
         }
 
         protected override void OnStarted()
@@ -140,12 +138,12 @@ namespace JVermeulen.WebSockets
             if (message.IsIncoming)
             {
                 if (OptionLogToConsole)
-                    Console.WriteLine($"[Client] Received: {message.Content}");
+                    Console.WriteLine($"[Client] Received: {message.ContentInBytes} bytes");
             }
             else
             {
                 if (OptionLogToConsole)
-                    Console.WriteLine($"[Client] Sent: {message.Content}");
+                    Console.WriteLine($"[Client] Sent: {message.ContentInBytes} bytes");
             }
         }
 
