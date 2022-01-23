@@ -45,20 +45,15 @@ namespace JVermeulen.WebSockets
             ServerUri = builder.Uri;
         }
 
-        protected override void OnStarting()
+        protected override void OnStarted()
         {
-            base.OnStarting();
+            base.OnStarted();
 
             if (StartListener())
                 WaitForAcceptAsync().ConfigureAwait(false);
-        }
 
-        protected override void OnStarted()
-        {
             if (OptionLogToConsole)
                 Console.WriteLine($"[Server] Started: {ServerUri}");
-
-            base.OnStarted();
         }
 
         protected override void OnStopping()

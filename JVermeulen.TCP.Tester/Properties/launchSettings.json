@@ -2,7 +2,7 @@
   "profiles": {
     "JVermeulen.TCP.Tester": {
       "commandName": "Project",
-      "commandLineArgs": "--type client --address ws://localhost:8082/"
+      "commandLineArgs": "--type client --address ws://localhost:8082"
     }
   }
 }
