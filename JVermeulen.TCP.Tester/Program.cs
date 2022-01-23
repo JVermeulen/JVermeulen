@@ -15,10 +15,11 @@ namespace JVermeulen.TCP.Tester
 
             try
             {
-                //var serverUrl = "wss://demo.piesocket.com/v3/channel_1?api_key=oCdCMcMPQpbvNjUIzqtvF1d2X2okWpDQj4AwARJuAgtjhzKxVEjQU6IdCjwm&notify_self";
-
                 if (ReadArguments(args, out string type, out string address))
                 {
+                    //address = "wss://demo.piesocket.com/v3/channel_1?api_key=oCdCMcMPQpbvNjUIzqtvF1d2X2okWpDQj4AwARJuAgtjhzKxVEjQU6IdCjwm&notify_self";
+                    address = "wss://geoeventsample1.esri.com:6143/arcgis/ws/services/FAAStream/StreamServer/subscribe";
+
                     if (type == "server")
                         StartAsServer(address);
                     else if (type == "client")

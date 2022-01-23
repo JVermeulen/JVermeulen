@@ -179,7 +179,7 @@ namespace JVermeulen.App
             options.DontFragment = true;
 
             byte[] buffer = GetRandomBuffer(32);
-            int timeout = 120;
+            int timeout = 10000;
 
             PingReply reply = pingSender.Send(hostname, timeout, buffer, options);
 

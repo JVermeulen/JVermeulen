@@ -44,6 +44,19 @@ namespace JVermeulen.WebSockets
             ServerUri = builder.Uri;
         }
 
+        protected override void OnStarting()
+        {
+            base.OnStarting();
+
+            if (OptionLogToConsole)
+            {
+                if (Dns(out string dnsMessage))
+                    Console.WriteLine($"[Client] {dnsMessage}");
+                else
+                    Console.WriteLine($"[Client] DNS: Failed");
+            }
+        }
+
         protected override void OnStarted()
         {
             base.OnStarted();
@@ -103,7 +116,7 @@ namespace JVermeulen.WebSockets
         {
             var session = new WsSession(Encoder, false, ContentIsText, ServerUri.ToString(), context);
             session.Outbox.SubscribeSafe(OnSessionMessage);
-            session.MessageBox.SubscribeSafe(OnMessageReceived);
+            session.MessageBox.SubscribeSafe(OnContentMessage);
 
             Sessions.Add(session);
 
@@ -132,14 +145,16 @@ namespace JVermeulen.WebSockets
             }
         }
 
-        private void OnMessageReceived(ContentMessage<Content> message)
+        private void OnContentMessage(ContentMessage<Content> message)
         {
             Console.ResetColor();
 
             if (message.IsIncoming)
             {
                 if (OptionLogToConsole)
+                {
                     Console.WriteLine($"[Client] Received: {message.ContentInBytes} bytes");
+                }
             }
             else
             {

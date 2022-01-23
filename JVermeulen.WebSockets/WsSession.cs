@@ -38,7 +38,6 @@ namespace JVermeulen.WebSockets
 
         public TimeSpan OptionReceiveTimeout { get; set; } = TimeSpan.FromSeconds(3600);
         public TimeSpan OptionSendTimeout { get; set; } = TimeSpan.FromSeconds(15);
-        public TimeSpan OptionPingInterval { get; set; } = TimeSpan.FromSeconds(15);
         public int OptionBufferSize { get; set; } = 8 * 1024;
 
         public WsSession(ITcpEncoder<Content> encoder, bool isServer, bool contentIsText, string serverUrl, WebSocket socket) : base(TimeSpan.FromSeconds(60))
