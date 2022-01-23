@@ -1,8 +1,10 @@
-﻿using JVermeulen.Processing;
+﻿using JVermeulen.App;
+using JVermeulen.Processing;
 using JVermeulen.TCP;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
@@ -38,7 +40,7 @@ namespace JVermeulen.WebSockets
         {
             base.OnStarted();
 
-            WaitForConnect();
+            WaitForConnect().ConfigureAwait(false);
         }
 
         protected override void OnStopping()
@@ -48,9 +50,9 @@ namespace JVermeulen.WebSockets
             Sessions.Stop();
         }
 
-        private void WaitForConnect()
+        private async Task WaitForConnect()
         {
-            WaitForConnectAsync().ConfigureAwait(false);
+            var isConnected = await WaitForConnectAsync();
         }
 
         private async Task<bool> WaitForConnectAsync()
@@ -65,19 +67,12 @@ namespace JVermeulen.WebSockets
                 {
                     await client.ConnectAsync(ServerUri, timeout.Token);
 
-                    if (client.State == WebSocketState.Open)
-                    {
-                        OnConnect(client);
+                    if (client.State != WebSocketState.Open)
+                        throw new ApplicationException($"Failed to connect ({client.State}).");
 
-                        return true;
-                    }
-                    else
-                    {
-                        if (OptionLogToConsole)
-                            Console.WriteLine($"[Client] Warning: connect failed ({client.State}).");
+                    OnConnect(client);
 
-                        return false;
-                    }
+                    return true;
                 }
             }
             catch (Exception ex)
@@ -170,7 +165,27 @@ namespace JVermeulen.WebSockets
             base.OnHeartbeat(heartbeat);
 
             if (Status == SessionStatus.Started && !IsConnected && !IsConnecting)
-                WaitForConnect();
+                WaitForConnect().ConfigureAwait(false);
+        }
+
+        public bool Dns(out string message)
+        {
+            message = null;
+
+            if (NetworkInfo.TryGetDnsInfo(ServerUri.Host, AddressFamily.InterNetwork, out string hostname, out IPAddress[] ipAddresses))
+                message = $"DNS: {hostname} [{ipAddresses[0]}]";
+
+            return message != null;
+        }
+
+        public bool Ping(out string message)
+        {
+            message = null;
+
+            if (NetworkInfo.Ping(ServerUri.Host, out IPAddress ipAddress, out TimeSpan roundtrip))
+                message = $"Ping: {ServerUri.Host} [{ipAddress}] {roundtrip.TotalMilliseconds:N0} ms";
+
+            return message != null;
         }
 
         public override void Dispose()

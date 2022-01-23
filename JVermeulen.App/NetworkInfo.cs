@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 
 namespace JVermeulen.App
@@ -120,6 +121,75 @@ namespace JVermeulen.App
             }
 
             return protocols != null;
+        }
+
+        private static byte[] GetRandomBuffer(int bufferSize)
+        {
+            byte[] buffer = new byte[bufferSize];
+
+            new Random().NextBytes(buffer);
+
+            return buffer;
+        }
+
+        /// <summary>
+        /// Returns the Tracert ipaddresses.
+        /// </summary>
+        /// <param name="hostname">The host to look for.</param>
+        public static IEnumerable<IPAddress> GetTraceRoute(string hostname)
+        {
+            // following are similar to the defaults in the "traceroute" unix command.
+            const int timeout = 10000;
+            const int maxTTL = 30;
+            const int bufferSize = 32;
+
+            byte[] buffer = GetRandomBuffer(bufferSize);
+
+            using (var pinger = new Ping())
+            {
+                for (int ttl = 1; ttl <= maxTTL; ttl++)
+                {
+                    PingOptions options = new PingOptions(ttl, true);
+                    PingReply reply = pinger.Send(hostname, timeout, buffer, options);
+
+                    // we've found a route at this ttl
+                    if (reply.Status == IPStatus.Success || reply.Status == IPStatus.TtlExpired)
+                        yield return reply.Address;
+
+                    // if we reach a status other than expired or timed out, we're done searching or there has been an error
+                    if (reply.Status != IPStatus.TtlExpired && reply.Status != IPStatus.TimedOut)
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns if the given host can be pinged.
+        /// </summary>
+        /// <param name="hostname">The hostname to look for.</param>
+        /// <param name="ipAddress">The IP Address of the given hostname.</param>
+        /// <param name="roundtrip">The duration of the ping.</param>
+        public static bool Ping(string hostname,out IPAddress ipAddress, out TimeSpan roundtrip)
+        {
+            ipAddress = null;
+            roundtrip = default;
+
+            var pingSender = new Ping();
+            var options = new PingOptions();
+            options.DontFragment = true;
+
+            byte[] buffer = GetRandomBuffer(32);
+            int timeout = 120;
+
+            PingReply reply = pingSender.Send(hostname, timeout, buffer, options);
+
+            if (reply.Status == IPStatus.Success)
+            {
+                ipAddress = reply.Address;
+                roundtrip = TimeSpan.FromMilliseconds(reply.RoundtripTime);
+            }
+
+            return (ipAddress != null);
         }
     }
 }
