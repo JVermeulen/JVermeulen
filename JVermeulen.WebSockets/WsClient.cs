@@ -3,6 +3,7 @@ using JVermeulen.TCP;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -13,23 +14,30 @@ namespace JVermeulen.WebSockets
     public class WsClient : Actor
     {
         public ITcpEncoder<WsContent> Encoder { get; private set; }
-        public string ServerUrl { get; private set; }
+        public bool IsSecure { get; private set; }
+        public Uri ServerUri { get; private set; }
+        public string Scheme => IsSecure ? "wss" : "ws";
+        public WsSessionManager Sessions { get; private set; }
+        public bool IsConnected => Sessions.ConnectedCount() > 0;
+        public bool IsConnecting { get; private set; }
 
-        public WsSession Session { get; private set; }
-        public bool IsConnected => Session != null && Session.IsConnected;
-
-        public TimeSpan OptionConnectionTimeout { get; set; } = TimeSpan.FromSeconds(10);
+        public TimeSpan OptionConnectionTimeout { get; set; } = TimeSpan.FromSeconds(30);
         public bool OptionReconnectOnHeatbeat { get; set; } = true;
         public bool OptionLogToConsole { get; set; } = false;
 
-        public WsClient(ITcpEncoder<WsContent> encoder, string url)
+        public WsClient(ITcpEncoder<WsContent> encoder, bool isSecure, string hostname, int port, string path = "/") : base(TimeSpan.FromSeconds(5))
         {
             Encoder = encoder;
-            ServerUrl = url;
+            IsSecure = isSecure;
+            ServerUri = new UriBuilder(Scheme, hostname, port, path).Uri;
+
+            Sessions = new WsSessionManager();
         }
 
         protected override void OnStarted()
         {
+            base.OnStarted();
+
             WaitForConnect();
         }
 
@@ -37,7 +45,7 @@ namespace JVermeulen.WebSockets
         {
             base.OnStopping();
 
-            Session?.Stop();
+            Sessions.Stop();
         }
 
         private void WaitForConnect()
@@ -45,52 +53,78 @@ namespace JVermeulen.WebSockets
             WaitForConnectAsync().ConfigureAwait(false);
         }
 
-        private async Task WaitForConnectAsync()
+        private async Task<bool> WaitForConnectAsync()
         {
-            var client = new ClientWebSocket();
-
-            using (var timeout = new CancellationTokenSource(OptionConnectionTimeout))
+            try
             {
-                await client.ConnectAsync(new Uri(ServerUrl), timeout.Token);
+                IsConnecting = true;
 
-                if (client.State == WebSocketState.Open)
-                    OnConnect(client);
+                var client = new ClientWebSocket();
+
+                using (var timeout = new CancellationTokenSource(OptionConnectionTimeout))
+                {
+                    await client.ConnectAsync(ServerUri, timeout.Token);
+
+                    if (client.State == WebSocketState.Open)
+                    {
+                        OnConnect(client);
+
+                        return true;
+                    }
+                    else
+                    {
+                        if (OptionLogToConsole)
+                            Console.WriteLine($"[Client] Warning: connect failed ({client.State}).");
+
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (OptionLogToConsole)
+                    Console.WriteLine($"[Client] Warning: {GetExceptionMessageRecursive(ex)}");
+
+                if (FindExceptionRecursive(ex, out SocketException socketException))
+                    OnExceptionOccured(this, socketException);
+
+                return false;
+            }
+            finally
+            {
+                IsConnecting = false;
             }
         }
 
         private void OnConnect(ClientWebSocket context)
         {
-            if (Session == null)
-            {
-                Session = new WsSession(Encoder, false, ServerUrl, context);
-                Session.Outbox.SubscribeSafe(OnSessionMessage);
-                Session.MessageBox.SubscribeSafe(OnMessageReceived);
-            }
+            var session = new WsSession(Encoder, false, ServerUri.ToString(), context);
+            session.Outbox.SubscribeSafe(OnSessionMessage);
+            session.MessageBox.SubscribeSafe(OnMessageReceived);
 
-            Session.Start();
+            Sessions.Add(session);
+
+            session.Start();
         }
 
         private void OnSessionMessage(SessionMessage message)
         {
-            if (message.Sender is WsSession session)
+            if (message.Find(out WsSession _, out Exception ex))
             {
-                if (message.Content is Exception ex)
+                if (OptionLogToConsole)
+                    Console.WriteLine($"[Client] Exception: {GetExceptionMessageRecursive(ex)}");
+            }
+            else if (message.Find(out WsSession session, out SessionStatus status))
+            {
+                if (status == SessionStatus.Started)
                 {
                     if (OptionLogToConsole)
-                        Console.WriteLine($"[Client {Id}] Exception: {ExceptionToString(ex)}");
+                        Console.WriteLine($"[Client] Connected: {session}");
                 }
-                else if (message.Content is SessionStatus status)
+                else if (status == SessionStatus.Stopped)
                 {
-                    if (status == SessionStatus.Started)
-                    {
-                        if (OptionLogToConsole)
-                            Console.WriteLine($"[Client {Id}] Connected: {session}");
-                    }
-                    else if (status == SessionStatus.Stopped)
-                    {
-                        if (OptionLogToConsole)
-                            Console.WriteLine($"[Client {Id}] Disconnected: {session}");
-                    }
+                    if (OptionLogToConsole)
+                        Console.WriteLine($"[Client] Disconnected: {session}");
                 }
             }
         }
@@ -102,12 +136,12 @@ namespace JVermeulen.WebSockets
             if (message.IsIncoming)
             {
                 if (OptionLogToConsole)
-                    Console.WriteLine($"[Client {Id}] Received: {message.Content}");
+                    Console.WriteLine($"[Client] Received: {message.Content}");
             }
             else
             {
                 if (OptionLogToConsole)
-                    Console.WriteLine($"[Client {Id}] Sent: {message.Content}");
+                    Console.WriteLine($"[Client] Sent: {message.Content}");
             }
         }
 
@@ -117,7 +151,7 @@ namespace JVermeulen.WebSockets
             {
                 var content = new WsContent(value);
 
-                Session.Send(content).ConfigureAwait(false);
+                Sessions.Send(content);
             }
         }
 
@@ -127,7 +161,7 @@ namespace JVermeulen.WebSockets
             {
                 var content = new WsContent(value);
 
-                Session.Send(content).ConfigureAwait(false);
+                Sessions.Send(content);
             }
         }
 
@@ -135,13 +169,15 @@ namespace JVermeulen.WebSockets
         {
             base.OnHeartbeat(heartbeat);
 
-            if (Status == SessionStatus.Started && !IsConnected)
+            if (Status == SessionStatus.Started && !IsConnected && !IsConnecting)
                 WaitForConnect();
         }
 
         public override void Dispose()
         {
             Stop();
+
+            base.Dispose();
         }
     }
 }

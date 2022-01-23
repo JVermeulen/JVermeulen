@@ -1,10 +1,12 @@
 ﻿using JVermeulen.Processing;
 using JVermeulen.TCP;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace JVermeulen.WebSockets
@@ -12,46 +14,55 @@ namespace JVermeulen.WebSockets
     public class WsServer : Actor
     {
         private HttpListener Listener { get; set; }
-        public List<WsSession> Sessions { get; private set; }
+        public WsSessionManager Sessions { get; private set; }
 
         public ITcpEncoder<WsContent> Encoder { get; private set; }
-        public string ServerUrl => Listener.Prefixes.FirstOrDefault();
+        public bool IsSecure { get; private set; }
+        public Uri ServerUri { get; private set; }
+        public string Scheme => IsSecure ? "https" : "http";
+
+        public bool IsListening => Listener?.IsListening ?? false;
+        public bool IsAccepting { get; private set; }
 
         public TimeSpan OptionKeepAliveInterval { get; set; } = TimeSpan.FromSeconds(15);
         public bool OptionBroadcastMessages { get; set; } = false;
         public bool OptionEchoMessages { get; set; } = false;
         public bool OptionLogToConsole { get; set; } = false;
 
-        public WsServer(ITcpEncoder<WsContent> encoder, string url)
+        public WsServer(ITcpEncoder<WsContent> encoder, bool isSecure, string hostname, int port, string path = "/") : base(TimeSpan.FromSeconds(15))
         {
             Encoder = encoder;
+            IsSecure = isSecure;
+            ServerUri = new UriBuilder(Scheme, hostname, port, path).Uri;
 
-            Listener = new HttpListener();
-            Listener.Prefixes.Add(url);
-
-            Sessions = new List<WsSession>();
+            Sessions = new WsSessionManager();
         }
 
         protected override void OnStarting()
         {
-            Listener.Start();
+            base.OnStarting();
+
+            if (StartListener())
+                WaitForAcceptAsync().ConfigureAwait(false);
         }
 
         protected override void OnStarted()
         {
             if (OptionLogToConsole)
-                Console.WriteLine($"[Server {Id}] Started: {ServerUrl}");
+                Console.WriteLine($"[Server] Started: {ServerUri}");
 
-            WaitForAcceptAsync().ConfigureAwait(false);
+            base.OnStarted();
         }
 
         protected override void OnStopping()
         {
             base.OnStopping();
 
-            Listener.Stop();
+            Sessions.Stop();
 
-            Sessions.ForEach(s => s.Stop());
+            Task.Delay(1000).Wait();
+
+            Listener?.Stop();
         }
 
         protected override void OnStopped()
@@ -59,31 +70,82 @@ namespace JVermeulen.WebSockets
             base.OnStopped();
 
             if (OptionLogToConsole)
-                Console.WriteLine($"[Server {Id}] Stopped: {ServerUrl}");
+                Console.WriteLine($"[Server] Stopped: {ServerUri}");
+        }
+
+        protected override void OnHeartbeat(Heartbeat heartbeat)
+        {
+            if (Status == SessionStatus.Started)
+            {
+                if (!IsListening || !IsAccepting)
+                {
+                    if (StartListener())
+                        WaitForAcceptAsync().ConfigureAwait(false);
+                }
+            }
+
+            base.OnHeartbeat(heartbeat);
         }
 
         private async Task WaitForAcceptAsync()
         {
             try
             {
-                while (Status == SessionStatus.Started)
+                IsAccepting = true;
+
+                while (Status == SessionStatus.Started && IsListening)
                 {
                     var context = await Listener.GetContextAsync();
 
                     await OnAccept(context);
                 }
             }
-            catch (HttpListenerException httpListenerException)
+            catch (Exception ex)
             {
-                if (httpListenerException.ErrorCode == 995)
-                    Stop();
-                else
-                    throw;
+                OnExceptionOccured(this, ex);
             }
-            catch
+            finally
             {
-                throw;
+                IsAccepting = false;
             }
+        }
+
+        private bool StartListener()
+        {
+            try
+            {
+                if (Listener != null && !Listener.IsListening)
+                {
+                    Listener.Stop();
+                    Listener = null;
+                }
+
+                if (Listener == null)
+                {
+                    Listener = new HttpListener();
+                    Listener.Prefixes.Add(ServerUri.ToString());
+                    Listener.Start();
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                //Listener will be disposed on exception.
+                Listener = null;
+
+                OnExceptionOccured(this, ex);
+            }
+
+            return false;
+        }
+
+        protected override void OnExceptionOccured(object sender, Exception ex)
+        {
+            base.OnExceptionOccured(sender, ex);
+
+            if (OptionLogToConsole)
+                Console.WriteLine($"[Server] Exception: {GetExceptionMessageRecursive(ex)}");
         }
 
         private async Task OnAccept(HttpListenerContext context)
@@ -95,7 +157,7 @@ namespace JVermeulen.WebSockets
 
                 var wsContext = await context.AcceptWebSocketAsync(null, OptionKeepAliveInterval);
 
-                var session = new WsSession(Encoder, true, ServerUrl, wsContext.WebSocket);
+                var session = new WsSession(Encoder, true, ServerUri.ToString(), wsContext.WebSocket);
                 session.Outbox.SubscribeSafe(OnSessionMessage);
                 session.MessageBox.SubscribeSafe(OnMessageReceived);
 
@@ -114,25 +176,22 @@ namespace JVermeulen.WebSockets
 
         private void OnSessionMessage(SessionMessage message)
         {
-            if (message.Sender is WsSession session)
+            if (message.Find(out WsSession _, out Exception ex))
             {
-                if (message.Content is Exception ex)
+                if (OptionLogToConsole)
+                    Console.WriteLine($"[Server] Exception: {GetExceptionMessageRecursive(ex)}");
+            }
+            else if (message.Find(out WsSession session, out SessionStatus status))
+            {
+                if (status == SessionStatus.Started)
                 {
                     if (OptionLogToConsole)
-                        Console.WriteLine($"[Server {Id}] Exception: {ExceptionToString(ex)}");
+                        Console.WriteLine($"[Server] Connected: {session}");
                 }
-                else if (message.Content is SessionStatus status)
+                else if (status == SessionStatus.Stopped)
                 {
-                    if (status == SessionStatus.Started)
-                    {
-                        if (OptionLogToConsole)
-                            Console.WriteLine($"[Server {Id}] Connected: {session}");
-                    }
-                    else if (status == SessionStatus.Stopped)
-                    {
-                        if (OptionLogToConsole)
-                            Console.WriteLine($"[Server {Id}] Disconnected: {session}");
-                    }
+                    if (OptionLogToConsole)
+                        Console.WriteLine($"[Server] Disconnected: {session}");
                 }
             }
         }
@@ -144,7 +203,7 @@ namespace JVermeulen.WebSockets
             if (message.IsIncoming)
             {
                 if (OptionLogToConsole)
-                    Console.WriteLine($"[Server {Id}] Received: {message.Content}");
+                    Console.WriteLine($"[Server] Received from Session {message.DestinationAddress}: {message.ContentInBytes} bytes");
 
                 if (long.TryParse(message.SenderAddress, out long sessionId))
                 {
@@ -158,25 +217,38 @@ namespace JVermeulen.WebSockets
             else
             {
                 if (OptionLogToConsole)
-                    Console.WriteLine($"[Server {Id}] Sent: {message.Content}");
+                    Console.WriteLine($"[Server] Sent to Session {message.DestinationAddress}: {message.ContentInBytes} bytes");
             }
         }
 
         public void Echo(WsContent content, long sender)
         {
-            Send(content, s => s.IsConnected && s.SessionId == sender);
+            Sessions.Send(content, s => s.IsConnected && s.SessionId == sender);
         }
 
         public void Broadcast(WsContent content, long sender)
         {
-            Send(content, s => s.IsConnected && s.SessionId != sender);
+            Sessions.Send(content, s => s.IsConnected && s.SessionId != sender);
         }
 
-        public void Send(WsContent content, Func<WsSession, bool> query)
+        public void Send(byte[] value)
         {
-            var sessions = Sessions.Where(s => s.Status == SessionStatus.Started).Where(query).ToList();
+            if (Status == SessionStatus.Started)
+            {
+                var content = new WsContent(value);
 
-            sessions.ForEach(s => s.Send(content).ConfigureAwait(false));
+                Sessions.Send(content);
+            }
+        }
+
+        public void Send(string value)
+        {
+            if (Status == SessionStatus.Started)
+            {
+                var content = new WsContent(value);
+
+                Sessions.Send(content);
+            }
         }
 
         public override void Dispose()

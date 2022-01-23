@@ -54,28 +54,16 @@ namespace JVermeulen.Processing
         public bool IsContentMessageType => Content != null && Content.GetType().IsGenericType && Content.GetType().GetGenericTypeDefinition() == typeof(ContentMessage<>);
 
         /// <summary>
-        /// Checks if the content is of the given type.
-        /// </summary>
-        /// <param name="types">The types to check for.</param>
-        /// <returns></returns>
-        public bool ContentIsTypeof(List<Type> types)
-        {
-            if (Content == null)
-                return false;
-            else if (Content is SessionMessage sessionMessage)
-                return sessionMessage.ContentIsTypeof(types);
-            else
-                return types.Contains(Content.GetType());
-        }
-
-        /// <summary>
         /// Checks if the content is of the given type. T is the type to check for.
         /// </summary>
         public bool ContentIsTypeof<T1>()
         {
-            var types = new List<Type>() { typeof(T1) };
-
-            return ContentIsTypeof(types);
+            if (Content is T1)
+                return true;
+            else if (Content is SessionMessage sessionMessage)
+                return sessionMessage.ContentIsTypeof<T1>();
+            else
+                return false;
         }
 
         /// <summary>
@@ -102,9 +90,12 @@ namespace JVermeulen.Processing
         /// </summary>
         public bool ContentIsTypeof<T1, T2>()
         {
-            var types = new List<Type>() { typeof(T1), typeof(T2) };
-
-            return ContentIsTypeof(types);
+            if (Content is T1 || Content is T2)
+                return true;
+            else if (Content is SessionMessage sessionMessage)
+                return sessionMessage.ContentIsTypeof<T1, T2>();
+            else
+                return false;
         }
 
         /// <summary>
@@ -112,9 +103,12 @@ namespace JVermeulen.Processing
         /// </summary>
         public bool ContentIsTypeof<T1, T2, T3>()
         {
-            var types = new List<Type>() { typeof(T1), typeof(T2), typeof(T3) };
-
-            return ContentIsTypeof(types);
+            if (Content is T1 || Content is T2 || Content is T3)
+                return true;
+            else if (Content is SessionMessage sessionMessage)
+                return sessionMessage.ContentIsTypeof<T1, T2, T3>();
+            else
+                return false;
         }
 
         /// <summary>
@@ -128,6 +122,26 @@ namespace JVermeulen.Processing
                 return sessionMessage.SenderIsTypeOf<T1>();
             else
                 return (Sender.GetType() == typeof(T1));
+        }
+
+
+        /// <summary>
+        /// Checks if the Sender and content are of the given types.
+        /// </summary>
+        public bool SenderIsTypeOf<T1>(out T1 sender) where T1 : Session
+        {
+            if (SenderIsTypeOf<T1>())
+            {
+                sender = (T1)Sender;
+
+                return true;
+            }
+            else
+            {
+                sender = default;
+
+                return false;
+            }
         }
 
         /// <summary>
@@ -160,6 +174,26 @@ namespace JVermeulen.Processing
             message = Find(m => m.SenderIsTypeOf<TSender>() && m.ContentIsTypeof<TContent>());
 
             return message != null;
+        }
+
+        /// <summary>
+        /// Return the inner message when the sender and content are of the given type, or one of the inner contents are.
+        /// </summary>
+        /// <typeparam name="TSender">The type of sender.</typeparam>
+        /// <typeparam name="TContent">The type of content.</typeparam>
+        /// <param name="sender">The sender of the given type.</param>
+        /// <param name="content">The content of the given type.</param>
+        /// <returns></returns>
+        public bool Find<TSender, TContent>(out TSender sender, out TContent content) where TSender : Session
+        {
+            content = default;
+
+            if (SenderIsTypeOf(out sender) && ContentIsTypeof(out content))
+                return true;
+            else if (Content is SessionMessage sessionMessage)
+                return sessionMessage.Find(out sender, out content);
+            else
+                return false;
         }
 
         /// <summary>

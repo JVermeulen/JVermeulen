@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 
@@ -31,10 +32,7 @@ namespace JVermeulen.WebSockets
 
         public override string ToString()
         {
-            if (IsText)
-                return $"Text ({Binary.Length} bytes)";
-            else
-                return $"Binary ({Binary.Length} bytes)";
+            return $"{Binary.Length} bytes";
         }
     }
 }

@@ -125,11 +125,27 @@
             <param name="onNext">What to do with messages received from Outbox.</param>
             <param name="onError">What to do with errors occured in the onNext action.</param>
         </member>
-        <member name="M:JVermeulen.Processing.Actor.ExceptionToString(System.Exception)">
+        <member name="M:JVermeulen.Processing.Actor.OnExceptionOccured(System.Object,System.Exception)">
+            <summary>
+            Send the given Exception to the outbox.
+            </summary>
+            <param name="sender">The sender of this Exception.</param>
+            <param name="ex">The Exception.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.Actor.GetExceptionMessageRecursive(System.Exception)">
             <summary>
             Create a combined message from the given exception and inner exceptions.
             </summary>
             <param name="ex">The exception to use.</param>
+        </member>
+        <member name="M:JVermeulen.Processing.Actor.FindExceptionRecursive``1(System.Exception,``0@)">
+            <summary>
+            Returns true when the given exception or inner exceptions (recursive) are of type T.
+            </summary>
+            <typeparam name="T">The type of Exception to look for.</typeparam>
+            <param name="ex">The Exception to look in.</param>
+            <param name="result">The resulting Exception.</param>
+            <returns></returns>
         </member>
         <member name="M:JVermeulen.Processing.Actor.Dispose">
             <summary>
@@ -551,13 +567,6 @@
             The content is of type ContentMessage.
             </summary>
         </member>
-        <member name="M:JVermeulen.Processing.SessionMessage.ContentIsTypeof(System.Collections.Generic.List{System.Type})">
-            <summary>
-            Checks if the content is of the given type.
-            </summary>
-            <param name="types">The types to check for.</param>
-            <returns></returns>
-        </member>
         <member name="M:JVermeulen.Processing.SessionMessage.ContentIsTypeof``1">
             <summary>
             Checks if the content is of the given type. T is the type to check for.
@@ -583,6 +592,11 @@
             Checks if the Sender and content are of the given types.
             </summary>
         </member>
+        <member name="M:JVermeulen.Processing.SessionMessage.SenderIsTypeOf``1(``0@)">
+            <summary>
+            Checks if the Sender and content are of the given types.
+            </summary>
+        </member>
         <member name="M:JVermeulen.Processing.SessionMessage.Contains``2">
             <summary>
             Return true when the sender and content are of the given type, or one of the inner contents are.
@@ -603,6 +617,16 @@
             </summary>
             <typeparam name="TSender">The type of sender.</typeparam>
             <typeparam name="TContent">The type of content.</typeparam>
+        </member>
+        <member name="M:JVermeulen.Processing.SessionMessage.Find``2(``0@,``1@)">
+            <summary>
+            Return the inner message when the sender and content are of the given type, or one of the inner contents are.
+            </summary>
+            <typeparam name="TSender">The type of sender.</typeparam>
+            <typeparam name="TContent">The type of content.</typeparam>
+            <param name="sender">The sender of the given type.</param>
+            <param name="content">The content of the given type.</param>
+            <returns></returns>
         </member>
         <member name="M:JVermeulen.Processing.SessionMessage.Find(System.Func{JVermeulen.Processing.SessionMessage,System.Boolean})">
             <summary>

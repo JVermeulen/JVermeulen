@@ -4,6 +4,7 @@ using JVermeulen.TCP.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -39,8 +40,6 @@ namespace JVermeulen.WebSockets
         public TimeSpan OptionPingInterval { get; set; } = TimeSpan.FromSeconds(15);
         public int OptionBufferSize { get; set; } = 8 * 1024;
 
-        private CancellationTokenSource ReceiveCancellation { get; set; }
-
         public WsSession(ITcpEncoder<WsContent> encoder, bool isServer, string serverUrl, WebSocket socket) : base(TimeSpan.FromSeconds(60))
         {
             SessionId = Interlocked.Increment(ref GlobalSessionId);
@@ -66,11 +65,20 @@ namespace JVermeulen.WebSockets
         {
             base.OnStopping();
 
-            ReceiveCancellation.Cancel();
+            CloseAsync().Wait();
+        }
 
-            using (var timeout = new CancellationTokenSource(OptionSendTimeout))
+        private async Task CloseAsync()
+        {
+            if (Socket.State == WebSocketState.Open || Socket.State == WebSocketState.CloseReceived)
             {
-                Socket?.CloseAsync(WebSocketCloseStatus.NormalClosure, null, timeout.Token);
+                using (var timeout = new CancellationTokenSource(OptionSendTimeout))
+                {
+                    if (IsServer)
+                        await Socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, timeout.Token);
+                    else
+                        await Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, timeout.Token);
+                }
             }
         }
 
@@ -82,11 +90,12 @@ namespace JVermeulen.WebSockets
                 {
                     WebSocketReceiveResult receiveResult;
 
-                    ReceiveCancellation = new CancellationTokenSource(OptionReceiveTimeout);
+                    using (var timeout = new CancellationTokenSource(OptionReceiveTimeout))
+                    {
+                        receiveResult = await Socket.ReceiveAsync(Buffer, timeout.Token);
+                    }
 
-                    receiveResult = await Socket.ReceiveAsync(Buffer, ReceiveCancellation.Token);
-
-                    if (receiveResult.Count != 0 || receiveResult.CloseStatus == WebSocketCloseStatus.Empty)
+                    if (receiveResult.Count > 0 && IsConnected)
                     {
                         ReceiveBuffer.Add(Buffer, 0, receiveResult.Count);
 
@@ -101,9 +110,12 @@ namespace JVermeulen.WebSockets
             }
             catch (Exception ex)
             {
-                Stop();
+                var aborted = FindExceptionRecursive(ex, out HttpListenerException innerException) && innerException.ErrorCode == (int)System.Net.Sockets.SocketError.OperationAborted;
 
-                OnExceptionOccured(this, ex);
+                if (!aborted)
+                    OnExceptionOccured(this, ex);
+
+                Stop();
             }
         }
 
@@ -157,13 +169,6 @@ namespace JVermeulen.WebSockets
 
                 return false;
             }
-        }
-
-        private void OnExceptionOccured(object sender, Exception ex)
-        {
-            var message = new SessionMessage(this, ex);
-
-            Outbox.Add(message);
         }
 
         public override string ToString()

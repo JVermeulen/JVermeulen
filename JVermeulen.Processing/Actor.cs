@@ -192,15 +192,50 @@ namespace JVermeulen.Processing
         }
 
         /// <summary>
+        /// Send the given Exception to the outbox.
+        /// </summary>
+        /// <param name="sender">The sender of this Exception.</param>
+        /// <param name="ex">The Exception.</param>
+        protected virtual void OnExceptionOccured(object sender, Exception ex)
+        {
+            var message = new SessionMessage(this, ex);
+
+            Outbox.Add(message);
+        }
+
+        /// <summary>
         /// Create a combined message from the given exception and inner exceptions.
         /// </summary>
         /// <param name="ex">The exception to use.</param>
-        public string ExceptionToString(Exception ex)
+        public string GetExceptionMessageRecursive(Exception ex)
         {
             if (ex.InnerException == null)
                 return ex.Message;
             else
-                return $"{ex.Message}; {ExceptionToString(ex.InnerException)}";
+                return $"{ex.Message}; {GetExceptionMessageRecursive(ex.InnerException)}";
+        }
+
+        /// <summary>
+        /// Returns true when the given exception or inner exceptions (recursive) are of type T.
+        /// </summary>
+        /// <typeparam name="T">The type of Exception to look for.</typeparam>
+        /// <param name="ex">The Exception to look in.</param>
+        /// <param name="result">The resulting Exception.</param>
+        /// <returns></returns>
+        public bool FindExceptionRecursive<T>(Exception ex, out T result) where T : Exception
+        {
+            result = default;
+
+            if (ex is T tex)
+            {
+                result = tex;
+            }
+            else if (ex.InnerException != null)
+            {
+                return FindExceptionRecursive<T>(ex.InnerException, out result);
+            }
+
+            return result != null;
         }
 
         /// <summary>
