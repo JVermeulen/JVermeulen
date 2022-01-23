@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
 
 namespace JVermeulen.WebSockets
 {
@@ -30,9 +31,45 @@ namespace JVermeulen.WebSockets
             Binary = Encoding.UTF8.GetBytes(content);
         }
 
+        public bool TryGetValueAs<T>(out T value)
+        {
+            value = default;
+
+            try
+            {
+                if (typeof(T) == typeof(byte[]))
+                {
+                    value = (T)Convert.ChangeType(Binary, typeof(T));
+
+                    return true;
+                }
+                else if (typeof(T) == typeof(string))
+                {
+                    value = (T)Convert.ChangeType(Text, typeof(T));
+
+                    return true;
+                }
+                else if (typeof(T) == typeof(JsonDocument))
+                {
+                    value = (T)Convert.ChangeType(JsonDocument.Parse(Text), typeof(T));
+
+                    return true;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            return false;
+        }
+
         public override string ToString()
         {
-            return $"{Binary.Length} bytes";
+            if (IsText)
+                return $"{Binary.Length} bytes - {Text}";
+            else
+                return $"{Binary.Length} bytes - Binary";
         }
     }
 }

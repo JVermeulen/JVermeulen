@@ -27,7 +27,16 @@ namespace JVermeulen.WebSockets
         public bool OptionReconnectOnHeatbeat { get; set; } = true;
         public bool OptionLogToConsole { get; set; } = false;
 
-        public WsClient(ITcpEncoder<WsContent> encoder, bool isSecure, string hostname, int port, string path = "/") : base(TimeSpan.FromSeconds(5))
+        public WsClient(ITcpEncoder<WsContent> encoder, bool isSecure, string serverUrl) : base(TimeSpan.FromSeconds(15))
+        {
+            Encoder = encoder;
+            IsSecure = isSecure;
+            ServerUri = new UriBuilder(serverUrl).Uri;
+
+            Sessions = new WsSessionManager();
+        }
+
+        public WsClient(ITcpEncoder<WsContent> encoder, bool isSecure, string hostname, int port, string path = "/") : base(TimeSpan.FromSeconds(15))
         {
             Encoder = encoder;
             IsSecure = isSecure;
