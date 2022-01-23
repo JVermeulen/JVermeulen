@@ -46,7 +46,7 @@ namespace JVermeulen.WebSockets
             }
         }
 
-        public void Send(WsContent content, Func<WsSession, bool> query = null)
+        public void Send(Content content, Func<WsSession, bool> query = null)
         {
             lock (SessionsLock)
             {

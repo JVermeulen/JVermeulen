@@ -16,8 +16,9 @@ namespace JVermeulen.WebSockets
         private HttpListener Listener { get; set; }
         public WsSessionManager Sessions { get; private set; }
 
-        public ITcpEncoder<WsContent> Encoder { get; private set; }
+        public ITcpEncoder<Content> Encoder { get; private set; }
         public bool IsSecure { get; private set; }
+        public bool ContentIsText { get; private set; }
         public Uri ServerUri { get; private set; }
 
         public bool IsListening => Listener?.IsListening ?? false;
@@ -28,11 +29,11 @@ namespace JVermeulen.WebSockets
         public bool OptionEchoMessages { get; set; } = false;
         public bool OptionLogToConsole { get; set; } = false;
 
-        public WsServer(ITcpEncoder<WsContent> encoder, string serverUri) : base(TimeSpan.FromSeconds(15))
+        public WsServer(ITcpEncoder<Content> encoder, string serverUri, bool contentIsText) : base(TimeSpan.FromSeconds(15))
         {
             Encoder = encoder;
-
             SetServerUri(serverUri);
+            ContentIsText = contentIsText;
 
             Sessions = new WsSessionManager();
         }
@@ -159,7 +160,7 @@ namespace JVermeulen.WebSockets
 
                 var wsContext = await context.AcceptWebSocketAsync(null, OptionKeepAliveInterval);
 
-                var session = new WsSession(Encoder, true, ServerUri.ToString(), wsContext.WebSocket);
+                var session = new WsSession(Encoder, true, ContentIsText, ServerUri.ToString(), wsContext.WebSocket);
                 session.Outbox.SubscribeSafe(OnSessionMessage);
                 session.MessageBox.SubscribeSafe(OnMessageReceived);
 
@@ -198,7 +199,7 @@ namespace JVermeulen.WebSockets
             }
         }
 
-        private void OnMessageReceived(ContentMessage<WsContent> message)
+        private void OnMessageReceived(ContentMessage<Content> message)
         {
             Console.ResetColor();
 
@@ -223,12 +224,12 @@ namespace JVermeulen.WebSockets
             }
         }
 
-        public void Echo(WsContent content, long sender)
+        public void Echo(Content content, long sender)
         {
             Sessions.Send(content, s => s.IsConnected && s.SessionId == sender);
         }
 
-        public void Broadcast(WsContent content, long sender)
+        public void Broadcast(Content content, long sender)
         {
             Sessions.Send(content, s => s.IsConnected && s.SessionId != sender);
         }
@@ -237,7 +238,7 @@ namespace JVermeulen.WebSockets
         {
             if (Status == SessionStatus.Started)
             {
-                var content = new WsContent(value);
+                var content = new Content(value);
 
                 Sessions.Send(content);
             }
@@ -247,7 +248,8 @@ namespace JVermeulen.WebSockets
         {
             if (Status == SessionStatus.Started)
             {
-                var content = new WsContent(value);
+                var text = Encoding.UTF8.GetBytes(value);
+                var content = new Content(text);
 
                 Sessions.Send(content);
             }

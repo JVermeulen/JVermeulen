@@ -1,4 +1,5 @@
-﻿using JVermeulen.TCP;
+﻿using JVermeulen.Processing;
+using JVermeulen.TCP;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace JVermeulen.WebSockets
 {
-    public class WsEncoder : ITcpEncoder<WsContent>
+    public class WsEncoder : ITcpEncoder<Content>
     {
         public static WsEncoder Text = new WsEncoder(WebSocketMessageType.Text);
         public static WsEncoder Binary = new WsEncoder(WebSocketMessageType.Binary);
@@ -25,17 +26,17 @@ namespace JVermeulen.WebSockets
             Encoding = Encoding.UTF8;
         }
 
-        public byte[] Encode(WsContent value)
+        public byte[] Encode(Content content)
         {
-            return value.Binary;
+            return content.Value;
         }
 
-        public WsContent Decode(byte[] data)
+        public Content Decode(byte[] data)
         {
-            return new WsContent(data, MessageType == WebSocketMessageType.Text);
+            return new Content(data);
         }
 
-        public bool TryFindContent(Memory<byte> buffer, out WsContent content, out int numberOfBytes)
+        public bool TryFindContent(Memory<byte> buffer, out Content content, out int numberOfBytes)
         {
             content = null;
             numberOfBytes = 0;

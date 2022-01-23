@@ -25,13 +25,14 @@ namespace JVermeulen.WebSockets
         public long SessionId { get; private set; }
 
         public bool IsServer { get; private set; }
+        public bool ContentIsText { get; private set; }
         public string ServerUrl { get; private set; }
         public WebSocket Socket { get; private set; }
         private ArraySegment<byte> Buffer { get; set; }
         private TcpBuffer ReceiveBuffer { get; set; }
 
-        public ITcpEncoder<WsContent> Encoder { get; private set; }
-        public MessageBox<ContentMessage<WsContent>> MessageBox { get; private set; }
+        public ITcpEncoder<Content> Encoder { get; private set; }
+        public MessageBox<ContentMessage<Content>> MessageBox { get; private set; }
 
         public bool IsConnected => Socket != null && Socket.State == WebSocketState.Open;
 
@@ -40,7 +41,7 @@ namespace JVermeulen.WebSockets
         public TimeSpan OptionPingInterval { get; set; } = TimeSpan.FromSeconds(15);
         public int OptionBufferSize { get; set; } = 8 * 1024;
 
-        public WsSession(ITcpEncoder<WsContent> encoder, bool isServer, string serverUrl, WebSocket socket) : base(TimeSpan.FromSeconds(60))
+        public WsSession(ITcpEncoder<Content> encoder, bool isServer, bool contentIsText, string serverUrl, WebSocket socket) : base(TimeSpan.FromSeconds(60))
         {
             SessionId = Interlocked.Increment(ref GlobalSessionId);
 
@@ -48,8 +49,9 @@ namespace JVermeulen.WebSockets
             Encoder = encoder;
             IsServer = isServer;
             ServerUrl = serverUrl;
+            ContentIsText = contentIsText;
 
-            MessageBox = new MessageBox<ContentMessage<WsContent>>();
+            MessageBox = new MessageBox<ContentMessage<Content>>();
             Buffer = WebSocket.CreateServerBuffer(OptionBufferSize);
             ReceiveBuffer = new TcpBuffer();
         }
@@ -121,17 +123,17 @@ namespace JVermeulen.WebSockets
 
         private void OnReceived(TcpBuffer buffer)
         {
-            while (Encoder.TryFindContent(buffer.Data, out WsContent content, out int numberOfBytes))
+            while (Encoder.TryFindContent(buffer.Data, out Content content, out int numberOfBytes))
             {
                 buffer.Remove(numberOfBytes);
 
-                var message = new ContentMessage<WsContent>(SessionId.ToString(), ServerUrl, true, false, content, numberOfBytes - Encoder.NettoDelimeterLength);
+                var message = new ContentMessage<Content>(SessionId.ToString(), ServerUrl, true, false, content, numberOfBytes - Encoder.NettoDelimeterLength);
 
                 MessageBox.Add(message);
             }
         }
 
-        public async Task<bool> Send(WsContent content)
+        public async Task<bool> Send(Content content)
         {
             try
             {
@@ -153,11 +155,11 @@ namespace JVermeulen.WebSockets
 
                     using (var timeout = new CancellationTokenSource(OptionSendTimeout))
                     {
-                        await Socket.SendAsync(data, content.IsText ? WebSocketMessageType.Text : WebSocketMessageType.Binary, endOfMessage, timeout.Token);
+                        await Socket.SendAsync(data, ContentIsText ? WebSocketMessageType.Text : WebSocketMessageType.Binary, endOfMessage, timeout.Token);
                     }
                 }
 
-                var message = new ContentMessage<WsContent>(ServerUrl, SessionId.ToString(), false, false, content, data.Length);
+                var message = new ContentMessage<Content>(ServerUrl, SessionId.ToString(), false, false, content, data.Length);
 
                 MessageBox.Add(message);
 

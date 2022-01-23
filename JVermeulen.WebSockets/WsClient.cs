@@ -15,8 +15,9 @@ namespace JVermeulen.WebSockets
 {
     public class WsClient : Actor
     {
-        public ITcpEncoder<WsContent> Encoder { get; private set; }
+        public ITcpEncoder<Content> Encoder { get; private set; }
         public bool IsSecure { get; private set; }
+        public bool ContentIsText { get; private set; }
         public Uri ServerUri { get; private set; }
         public WsSessionManager Sessions { get; private set; }
         public bool IsConnected => Sessions.ConnectedCount() > 0;
@@ -26,11 +27,11 @@ namespace JVermeulen.WebSockets
         public bool OptionReconnectOnHeatbeat { get; set; } = true;
         public bool OptionLogToConsole { get; set; } = false;
 
-        public WsClient(ITcpEncoder<WsContent> encoder, string serverUri) : base(TimeSpan.FromSeconds(15))
+        public WsClient(ITcpEncoder<Content> encoder, string serverUri, bool contentIsText) : base(TimeSpan.FromSeconds(15))
         {
             Encoder = encoder;
-
             SetServerUri(serverUri);
+            ContentIsText = contentIsText;
 
             Sessions = new WsSessionManager();
         }
@@ -100,7 +101,7 @@ namespace JVermeulen.WebSockets
 
         private void OnConnect(ClientWebSocket context)
         {
-            var session = new WsSession(Encoder, false, ServerUri.ToString(), context);
+            var session = new WsSession(Encoder, false, ContentIsText, ServerUri.ToString(), context);
             session.Outbox.SubscribeSafe(OnSessionMessage);
             session.MessageBox.SubscribeSafe(OnMessageReceived);
 
@@ -131,7 +132,7 @@ namespace JVermeulen.WebSockets
             }
         }
 
-        private void OnMessageReceived(ContentMessage<WsContent> message)
+        private void OnMessageReceived(ContentMessage<Content> message)
         {
             Console.ResetColor();
 
@@ -151,7 +152,7 @@ namespace JVermeulen.WebSockets
         {
             if (IsConnected)
             {
-                var content = new WsContent(value);
+                var content = new Content(value);
 
                 Sessions.Send(content);
             }
@@ -161,7 +162,8 @@ namespace JVermeulen.WebSockets
         {
             if (IsConnected)
             {
-                var content = new WsContent(value);
+                var data = Encoding.UTF8.GetBytes(value);
+                var content = new Content(data);
 
                 Sessions.Send(content);
             }

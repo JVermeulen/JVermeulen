@@ -73,7 +73,7 @@ namespace JVermeulen.TCP.Tester
 
         private static void StartAsServer(string address)
         {
-            using (var server = new WsServer(WsEncoder.Text, address))
+            using (var server = new WsServer(WsEncoder.Text, address, true))
             {
                 server.OptionLogToConsole = true;
                 server.OptionBroadcastMessages = true;
@@ -93,7 +93,7 @@ namespace JVermeulen.TCP.Tester
 
         private static void StartAsClient(string address)
         {
-            using (var client = new WsClient(WsEncoder.Text, address))
+            using (var client = new WsClient(WsEncoder.Text, address, true))
             {
                 client.OptionLogToConsole = true;
                 client.Start();
