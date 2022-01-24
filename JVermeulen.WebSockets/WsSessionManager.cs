@@ -48,12 +48,15 @@ namespace JVermeulen.WebSockets
 
         public void Send(Content content, Func<WsSession, bool> query = null)
         {
-            lock (SessionsLock)
+            if (content.Value.Length > 0)
             {
-                var activeSessions = Sessions.Where(s => s.Status == SessionStatus.Started);
-                var validsessions = query != null ? activeSessions.Where(query).ToList() : activeSessions.ToList();
+                lock (SessionsLock)
+                {
+                    var activeSessions = Sessions.Where(s => s.Status == SessionStatus.Started);
+                    var validsessions = query != null ? activeSessions.Where(query).ToList() : activeSessions.ToList();
 
-                validsessions.ForEach(s => s.Send(content).ConfigureAwait(false));
+                    validsessions.ForEach(s => s.Send(content).ConfigureAwait(false));
+                }
             }
         }
 

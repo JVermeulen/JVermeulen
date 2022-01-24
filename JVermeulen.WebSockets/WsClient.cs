@@ -22,6 +22,7 @@ namespace JVermeulen.WebSockets
         public WsSessionManager Sessions { get; private set; }
         public bool IsConnected => Sessions.ConnectedCount() > 0;
         public bool IsConnecting { get; private set; }
+        public Statistics<WsStatisticsSubject, WsStatisticsAction> ClientStatistics { get; set; }
 
         public TimeSpan OptionConnectionTimeout { get; set; } = TimeSpan.FromSeconds(30);
         public bool OptionReconnectOnHeatbeat { get; set; } = true;
@@ -34,6 +35,7 @@ namespace JVermeulen.WebSockets
             ContentIsText = contentIsText;
 
             Sessions = new WsSessionManager();
+            ClientStatistics = new Statistics<WsStatisticsSubject, WsStatisticsAction>($"Client ({ServerUri})");
         }
 
         private void SetServerUri(string serverUri)
@@ -125,47 +127,56 @@ namespace JVermeulen.WebSockets
 
         private void OnSessionMessage(SessionMessage message)
         {
-            if (message.Find(out WsSession _, out Exception ex))
+            if (message.Find(out WsSession session1, out Exception ex))
             {
                 if (OptionLogToConsole)
-                    Console.WriteLine($"[Client] Exception: {GetExceptionMessageRecursive(ex)}");
+                    Console.WriteLine($"[Client {session1.SessionId}] Exception: {GetExceptionMessageRecursive(ex)}");
             }
-            else if (message.Find(out WsSession session, out SessionStatus status))
+            else if (message.Find(out WsSession session2, out SessionStatus status))
             {
                 if (status == SessionStatus.Started)
                 {
+                    ClientStatistics.Add(WsStatisticsSubject.Servers, WsStatisticsAction.Connected);
+
                     if (OptionLogToConsole)
-                        Console.WriteLine($"[Client] Connected: {session}");
+                        Console.WriteLine($"[Client {session2.SessionId}] Connected: {session2}");
                 }
                 else if (status == SessionStatus.Stopped)
                 {
+                    ClientStatistics.Add(WsStatisticsSubject.Servers, WsStatisticsAction.Disconnected);
+
                     if (OptionLogToConsole)
-                        Console.WriteLine($"[Client] Disconnected: {session}");
+                        Console.WriteLine($"[Client {session2.SessionId}] Disconnected: {session2}");
                 }
             }
         }
 
         private void OnContentMessage(ContentMessage<Content> message)
         {
-            Console.ResetColor();
-
             if (message.IsIncoming)
             {
                 if (OptionLogToConsole)
                 {
-                    Console.WriteLine($"[Client] Received: {message.ContentInBytes} bytes");
+                    ClientStatistics.Add(WsStatisticsSubject.Messages, WsStatisticsAction.Received);
+                    ClientStatistics.Add(WsStatisticsSubject.Bytes, WsStatisticsAction.Received, message.ContentInBytes ?? 0);
+
+                    //if (OptionLogToConsole)
+                    //    Console.WriteLine($"[Client {message.SenderAddress}] Received: {message.ContentInBytes} bytes");
                 }
             }
             else
             {
-                if (OptionLogToConsole)
-                    Console.WriteLine($"[Client] Sent: {message.ContentInBytes} bytes");
+                ClientStatistics.Add(WsStatisticsSubject.Messages, WsStatisticsAction.Sent);
+                ClientStatistics.Add(WsStatisticsSubject.Bytes, WsStatisticsAction.Sent, message.ContentInBytes ?? 0);
+
+                //if (OptionLogToConsole)
+                //    Console.WriteLine($"[Client {message.SenderAddress}] Sent: {message.ContentInBytes} bytes");
             }
         }
 
         public void Send(byte[] value)
         {
-            if (IsConnected)
+            if (IsConnected && value.Any())
             {
                 var content = new Content(value);
 
@@ -173,14 +184,20 @@ namespace JVermeulen.WebSockets
             }
         }
 
-        public void Send(string value)
+        public void Send(string value, int repeat = 0, TimeSpan interval = default)
         {
-            if (IsConnected)
+            for (int i = 0; i < repeat; i++)
             {
-                var data = Encoding.UTF8.GetBytes(value);
-                var content = new Content(data);
+                if (IsConnected && !string.IsNullOrEmpty(value))
+                {
+                    var data = Encoding.UTF8.GetBytes(value);
+                    var content = new Content(data);
 
-                Sessions.Send(content);
+                    Sessions.Send(content);
+                }
+
+                if (interval != default)
+                    Task.Delay(interval).Wait();
             }
         }
 
@@ -190,6 +207,13 @@ namespace JVermeulen.WebSockets
 
             if (Status == SessionStatus.Started && !IsConnected && !IsConnecting)
                 WaitForConnect().ConfigureAwait(false);
+
+            var statistics = ClientStatistics.Next();
+
+            if (OptionLogToConsole && statistics.Values.Count > 0)
+                Console.WriteLine(statistics.ToString());
+
+            Outbox.Add(new SessionMessage(this, statistics));
         }
 
         public bool Dns(out string message)

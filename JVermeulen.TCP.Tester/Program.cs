@@ -1,5 +1,6 @@
 ﻿using JVermeulen.WebSockets;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,12 +19,12 @@ namespace JVermeulen.TCP.Tester
                 if (ReadArguments(args, out string type, out string address))
                 {
                     //address = "wss://demo.piesocket.com/v3/channel_1?api_key=oCdCMcMPQpbvNjUIzqtvF1d2X2okWpDQj4AwARJuAgtjhzKxVEjQU6IdCjwm&notify_self";
-                    address = "wss://geoeventsample1.esri.com:6143/arcgis/ws/services/FAAStream/StreamServer/subscribe";
+                    //address = "wss://geoeventsample1.esri.com:6143/arcgis/ws/services/FAAStream/StreamServer/subscribe";
 
                     if (type == "server")
                         StartAsServer(address);
                     else if (type == "client")
-                        StartAsClient(address);
+                        StartAsClient(address, 1);
                 }
 
                 Console.WriteLine("Done!");
@@ -77,8 +78,8 @@ namespace JVermeulen.TCP.Tester
             using (var server = new WsServer(WsEncoder.Text, address, true))
             {
                 server.OptionLogToConsole = true;
-                server.OptionBroadcastMessages = true;
-                server.OptionEchoMessages = true;
+                //server.OptionBroadcastMessages = true;
+                //server.OptionEchoMessages = true;
                 server.Start();
 
                 string message = null;
@@ -108,6 +109,37 @@ namespace JVermeulen.TCP.Tester
                     client.Send(message);
                 }
             }
+        }
+
+        private static void StartAsClient(string address, int numberOfClients)
+        {
+            var clients = new List<WsClient>();
+
+            for (int i = 0; i < numberOfClients; i++)
+            {
+                var client = new WsClient(WsEncoder.Text, address, true);
+                client.OptionLogToConsole = true;
+                clients.Add(client);
+                client.Start();
+            }
+
+            //clients.ForEach(c => Task.Factory.StartNew(() => PerformanceTest(c)));
+
+            string message = null;
+
+            while (message != "exit")
+            {
+                message = Console.ReadLine();
+
+                clients.ForEach(c => c.Send(message));
+            }
+
+            clients.ForEach(c => c.Stop());
+        }
+
+        private static void PerformanceTest(WsClient client)
+        {
+            client.Send("12", int.MaxValue, TimeSpan.FromMilliseconds(10));
         }
     }
 }

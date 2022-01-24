@@ -24,6 +24,8 @@ namespace JVermeulen.WebSockets
         public bool IsListening => Listener?.IsListening ?? false;
         public bool IsAccepting { get; private set; }
 
+        public Statistics<WsStatisticsSubject, WsStatisticsAction> ServerStatistics { get; set; }
+
         public TimeSpan OptionKeepAliveInterval { get; set; } = TimeSpan.FromSeconds(15);
         public bool OptionBroadcastMessages { get; set; } = false;
         public bool OptionEchoMessages { get; set; } = false;
@@ -36,6 +38,7 @@ namespace JVermeulen.WebSockets
             ContentIsText = contentIsText;
 
             Sessions = new WsSessionManager();
+            ServerStatistics = new Statistics<WsStatisticsSubject, WsStatisticsAction>($"Server ({ServerUri})");
         }
 
         private void SetServerUri(string serverUri)
@@ -78,6 +81,11 @@ namespace JVermeulen.WebSockets
 
         protected override void OnHeartbeat(Heartbeat heartbeat)
         {
+            base.OnHeartbeat(heartbeat);
+
+            if (OptionLogToConsole)
+                Console.WriteLine();
+
             if (Status == SessionStatus.Started)
             {
                 if (!IsListening || !IsAccepting)
@@ -87,7 +95,12 @@ namespace JVermeulen.WebSockets
                 }
             }
 
-            base.OnHeartbeat(heartbeat);
+            var statistics = ServerStatistics.Next();
+
+            if (OptionLogToConsole && statistics.Values.Count > 0)
+                Console.WriteLine(statistics.ToString());
+
+            Outbox.Add(new SessionMessage(this, statistics));
         }
 
         private async Task WaitForAcceptAsync()
@@ -162,7 +175,7 @@ namespace JVermeulen.WebSockets
 
                 var session = new WsSession(Encoder, true, ContentIsText, ServerUri.ToString(), wsContext.WebSocket);
                 session.Outbox.SubscribeSafe(OnSessionMessage);
-                session.MessageBox.SubscribeSafe(OnMessageReceived);
+                session.MessageBox.SubscribeSafe(OnContentMessage);
 
                 Sessions.Add(session);
 
@@ -188,25 +201,32 @@ namespace JVermeulen.WebSockets
             {
                 if (status == SessionStatus.Started)
                 {
+                    ServerStatistics.Add(WsStatisticsSubject.Clients, WsStatisticsAction.Connected);
+
                     if (OptionLogToConsole)
                         Console.WriteLine($"[Server] Connected: {session}");
                 }
                 else if (status == SessionStatus.Stopped)
                 {
+                    ServerStatistics.Add(WsStatisticsSubject.Clients, WsStatisticsAction.Disconnected);
+
                     if (OptionLogToConsole)
                         Console.WriteLine($"[Server] Disconnected: {session}");
                 }
             }
         }
 
-        private void OnMessageReceived(ContentMessage<Content> message)
+        private void OnContentMessage(ContentMessage<Content> message)
         {
             Console.ResetColor();
 
             if (message.IsIncoming)
             {
-                if (OptionLogToConsole)
-                    Console.WriteLine($"[Server] Received: {message.ContentInBytes} bytes");
+                ServerStatistics.Add(WsStatisticsSubject.Messages, WsStatisticsAction.Received);
+                ServerStatistics.Add(WsStatisticsSubject.Bytes, WsStatisticsAction.Received, message.ContentInBytes ?? 0);
+
+                //if (OptionLogToConsole)
+                //    Console.WriteLine($"[Server] Received: {message.ContentInBytes} bytes");
 
                 if (long.TryParse(message.SenderAddress, out long sessionId))
                 {
@@ -219,8 +239,11 @@ namespace JVermeulen.WebSockets
             }
             else
             {
-                if (OptionLogToConsole)
-                    Console.WriteLine($"[Server] Sent: {message.ContentInBytes} bytes");
+                ServerStatistics.Add(WsStatisticsSubject.Messages, WsStatisticsAction.Sent);
+                ServerStatistics.Add(WsStatisticsSubject.Bytes, WsStatisticsAction.Sent, message.ContentInBytes ?? 0);
+
+                //if (OptionLogToConsole)
+                //    Console.WriteLine($"[Server] Sent: {message.ContentInBytes} bytes");
             }
         }
 
