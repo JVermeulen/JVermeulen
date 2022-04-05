@@ -468,6 +468,11 @@
             The constructor of this class.
             </summary>
         </member>
+        <member name="M:JVermeulen.Processing.Session.StartAndWait(System.Threading.CancellationToken)">
+            <summary>
+            Starts the session.
+            </summary>
+        </member>
         <member name="M:JVermeulen.Processing.Session.Start">
             <summary>
             Starts the session.

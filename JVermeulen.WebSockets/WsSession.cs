@@ -39,6 +39,8 @@ namespace JVermeulen.WebSockets
         public TimeSpan OptionReceiveTimeout { get; set; } = TimeSpan.FromSeconds(3600);
         public TimeSpan OptionSendTimeout { get; set; } = TimeSpan.FromSeconds(15);
         public int OptionBufferSize { get; set; } = 8 * 1024;
+        public bool OptionAllowReceive { get; set; } = true;
+        public bool OptionAllowSend { get; set; } = true;
 
         public WsSession(ITcpEncoder<Content> encoder, bool isServer, bool contentIsText, string serverUrl, WebSocket socket) : base(TimeSpan.FromSeconds(60))
         {
@@ -59,7 +61,8 @@ namespace JVermeulen.WebSockets
         {
             base.OnStarted();
 
-            WaitForReceive().ConfigureAwait(false);
+            if (OptionAllowReceive)
+                WaitForReceive().ConfigureAwait(false);
         }
 
         protected override void OnStopping()
@@ -136,7 +139,7 @@ namespace JVermeulen.WebSockets
         {
             try
             {
-                if (!IsConnected)
+                if (!IsConnected || !OptionAllowSend)
                     return false;
 
                 var data = Encoder.Encode(content);

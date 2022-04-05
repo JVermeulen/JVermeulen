@@ -1,4 +1,5 @@
 ﻿using JVermeulen.App;
+using JVermeulen.Monitoring;
 using JVermeulen.Processing;
 using JVermeulen.TCP;
 using System;
@@ -27,6 +28,7 @@ namespace JVermeulen.WebSockets
         public TimeSpan OptionConnectionTimeout { get; set; } = TimeSpan.FromSeconds(30);
         public bool OptionReconnectOnHeatbeat { get; set; } = true;
         public bool OptionLogToConsole { get; set; } = false;
+        public Tuple<string, string> OptionRequestHeader { get; set; } = null;
 
         public WsClient(ITcpEncoder<Content> encoder, string serverUri, bool contentIsText) : base(TimeSpan.FromSeconds(15))
         {
@@ -86,6 +88,9 @@ namespace JVermeulen.WebSockets
 
                 var client = new ClientWebSocket();
 
+                if (OptionRequestHeader != null)
+                    client.Options.SetRequestHeader(OptionRequestHeader.Item1, OptionRequestHeader.Item2);
+                
                 using (var timeout = new CancellationTokenSource(OptionConnectionTimeout))
                 {
                     await client.ConnectAsync(ServerUri, timeout.Token);
@@ -184,7 +189,7 @@ namespace JVermeulen.WebSockets
             }
         }
 
-        public void Send(string value, int repeat = 0, TimeSpan interval = default)
+        public void Send(string value, int repeat = 1, TimeSpan interval = default)
         {
             for (int i = 0; i < repeat; i++)
             {
@@ -196,10 +201,26 @@ namespace JVermeulen.WebSockets
                     Sessions.Send(content);
                 }
 
-                if (interval != default)
+                if (i < repeat && interval != default)
                     Task.Delay(interval).Wait();
             }
         }
+
+        //public static int TestDelay = 1000;
+
+        //public void Test()
+        //{
+        //    var random = new Random();
+        //    while (Status == SessionStatus.Started)
+        //    {
+        //        var data = Encoding.UTF8.GetBytes("12");
+        //        var content = new Content(data);
+
+        //        Sessions.Send(content);
+
+        //        Task.Delay(TestDelay).Wait();
+        //    }
+        //}
 
         protected override void OnHeartbeat(Heartbeat heartbeat)
         {

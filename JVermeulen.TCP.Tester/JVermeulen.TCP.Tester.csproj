@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\JVermeulen.Monitoring\JVermeulen.Monitoring.csproj" />
     <ProjectReference Include="..\JVermeulen.TCP\JVermeulen.TCP.csproj" />
     <ProjectReference Include="..\JVermeulen.WebSockets\JVermeulen.WebSockets.csproj" />
   </ItemGroup>

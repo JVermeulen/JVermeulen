@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace JVermeulen.Processing
+namespace JVermeulen.Monitoring
 {
     public record StatisticsFrame<TSubject, TAction> where TSubject : Enum where TAction : Enum
     {
@@ -12,13 +13,23 @@ namespace JVermeulen.Processing
         public DateTime StartedAt { get; init; }
         public DateTime StoppedAt { get; init; }
         public ReadOnlyDictionary<(TSubject, TAction), long> Values { get; init; }
-        
+
         public StatisticsFrame(string name, DateTime startedAt, DateTime stoppedAt, Dictionary<(TSubject, TAction), long> values)
         {
             Name = name;
             StartedAt = startedAt;
             StoppedAt = stoppedAt;
             Values = new ReadOnlyDictionary<(TSubject, TAction), long>(values);
+        }
+
+        public long? GetValue(TSubject subject, TAction action)
+        {
+            var key = (subject, action);
+
+            if (Values.ContainsKey(key))
+                return Values[key];
+            else
+                return null;
         }
 
         public override string ToString()

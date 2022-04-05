@@ -1,0 +1,22 @@
+﻿syntax = "proto3";
+
+import "timestamp.proto";
+
+option csharp_namespace = "JVermeulen.Monitoring.Models";
+
+message Message {
+    optional Frame frame = 1;
+}
+
+message Frame {
+    string name = 1;
+    google.protobuf.Timestamp startedAt = 2;
+    google.protobuf.Timestamp stoppedAt = 3;
+    repeated Asset assets = 4;
+}
+
+message Asset {
+    sint32 subject = 1;
+    sint32 action = 2;
+    sint64 value = 3;
+}

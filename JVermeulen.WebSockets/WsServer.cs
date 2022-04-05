@@ -1,4 +1,5 @@
-﻿using JVermeulen.Processing;
+﻿using JVermeulen.Monitoring;
+using JVermeulen.Processing;
 using JVermeulen.TCP;
 using Microsoft.Extensions.Logging;
 using System;
@@ -6,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -31,7 +33,9 @@ namespace JVermeulen.WebSockets
         public bool OptionEchoMessages { get; set; } = false;
         public bool OptionLogToConsole { get; set; } = false;
 
-        public WsServer(ITcpEncoder<Content> encoder, string serverUri, bool contentIsText) : base(TimeSpan.FromSeconds(15))
+        public WsClient Monitoring { get; set; }
+
+        public WsServer(ITcpEncoder<Content> encoder, string serverUri, bool contentIsText) : base(TimeSpan.FromSeconds(1))
         {
             Encoder = encoder;
             SetServerUri(serverUri);
@@ -49,6 +53,13 @@ namespace JVermeulen.WebSockets
             ServerUri = builder.Uri;
         }
 
+        protected override void OnStarting()
+        {
+            base.OnStarting();
+
+            Monitoring?.Start();
+        }
+
         protected override void OnStarted()
         {
             base.OnStarted();
@@ -63,6 +74,8 @@ namespace JVermeulen.WebSockets
         protected override void OnStopping()
         {
             base.OnStopping();
+
+            Monitoring?.Stop();
 
             Sessions.Stop();
 
@@ -83,9 +96,6 @@ namespace JVermeulen.WebSockets
         {
             base.OnHeartbeat(heartbeat);
 
-            if (OptionLogToConsole)
-                Console.WriteLine();
-
             if (Status == SessionStatus.Started)
             {
                 if (!IsListening || !IsAccepting)
@@ -97,10 +107,25 @@ namespace JVermeulen.WebSockets
 
             var statistics = ServerStatistics.Next();
 
-            if (OptionLogToConsole && statistics.Values.Count > 0)
-                Console.WriteLine(statistics.ToString());
+            //if (OptionLogToConsole && statistics.Values.Count > 0)
+            //    Console.WriteLine(statistics.ToString());
 
             Outbox.Add(new SessionMessage(this, statistics));
+
+            if (Monitoring != null)
+            {
+                var received = statistics.GetValue(WsStatisticsSubject.Messages, WsStatisticsAction.Received) ?? 0;
+                var sent = statistics.GetValue(WsStatisticsSubject.Messages, WsStatisticsAction.Sent) ?? 0;
+
+                SendToMonitoring(received, sent);
+            }
+        }
+
+        private void SendToMonitoring(long received, long sent)
+        {
+            var influx = $"tcs received={received},sent={sent}";
+
+            Monitoring.Send(influx);
         }
 
         private async Task WaitForAcceptAsync()
@@ -118,7 +143,8 @@ namespace JVermeulen.WebSockets
             }
             catch (Exception ex)
             {
-                OnExceptionOccured(this, ex);
+                if (Status != SessionStatus.Stopped)
+                    OnExceptionOccured(this, ex);
             }
             finally
             {
@@ -174,6 +200,10 @@ namespace JVermeulen.WebSockets
                 var wsContext = await context.AcceptWebSocketAsync(null, OptionKeepAliveInterval);
 
                 var session = new WsSession(Encoder, true, ContentIsText, ServerUri.ToString(), wsContext.WebSocket);
+                //TODO: replace with proper authorization. For now only local clients are allowed to send and receive data.
+                session.OptionAllowReceive = context.Request.IsLocal;
+                session.OptionAllowSend = context.Request.IsLocal;
+
                 session.Outbox.SubscribeSafe(OnSessionMessage);
                 session.MessageBox.SubscribeSafe(OnContentMessage);
 

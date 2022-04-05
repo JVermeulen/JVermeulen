@@ -1,11 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace JVermeulen.Processing
+namespace JVermeulen.Monitoring
 {
     public class Statistics<TSubject, TAction> where TSubject : Enum where TAction : Enum
     {
@@ -16,7 +12,7 @@ namespace JVermeulen.Processing
 
         public Dictionary<(TSubject, TAction), long> Values { get; set; }
         private readonly object ValuesLock = new object();
-
+        
         public Statistics(string name)
         {
             Name = name;

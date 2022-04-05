@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace JVermeulen.Processing
 {
@@ -33,6 +34,8 @@ namespace JVermeulen.Processing
         /// </summary>
         public DateTime StoppedAt { get; private set; }
 
+        private AutoResetEvent Wait;
+
         /// <summary>
         /// The duration between StartedAt and StoppedAt. If this session is not stopped, the current time will be used.
         /// </summary>
@@ -44,6 +47,25 @@ namespace JVermeulen.Processing
         public Session()
         {
             Id = Interlocked.Increment(ref GlobalId);
+        }
+
+        /// <summary>
+        /// Starts the session.
+        /// </summary>
+        public void StartAndWait(CancellationToken stoppingToken)
+        {
+            stoppingToken.Register(() => WaitForStop());
+
+            Wait = new AutoResetEvent(false);
+
+            Start();
+
+            Wait.WaitOne();
+        }
+
+        private void WaitForStop()
+        {
+            Wait.Set();
         }
 
         /// <summary>

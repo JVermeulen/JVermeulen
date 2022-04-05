@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <UserSecretsId>dotnet-JVermeulen.SystemMonitoring-4E8A3614-1F88-4CA7-91CB-51BE779EE4FF</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="6.0.0" />
+    <PackageReference Include="System.Management" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\JVermeulen.App.Windows\JVermeulen.App.Windows.csproj" />
+    <ProjectReference Include="..\..\JVermeulen.App\JVermeulen.App.csproj" />
+    <ProjectReference Include="..\..\JVermeulen.Monitoring\JVermeulen.Monitoring.csproj" />
+    <ProjectReference Include="..\..\JVermeulen.Processing\JVermeulen.Processing.csproj" />
+    <ProjectReference Include="..\..\JVermeulen.WebSockets\JVermeulen.WebSockets.csproj" />
+  </ItemGroup>
+</Project>

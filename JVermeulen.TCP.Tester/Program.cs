@@ -1,7 +1,10 @@
-﻿using JVermeulen.WebSockets;
+﻿using JVermeulen.Monitoring;
+using JVermeulen.Processing;
+using JVermeulen.WebSockets;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,6 +12,9 @@ namespace JVermeulen.TCP.Tester
 {
     class Program
     {
+        private static List<WsClient> Clients;
+        private static Actor Heartbeat;
+
         static void Main(string[] args)
         {
             Console.ResetColor();
@@ -18,13 +24,12 @@ namespace JVermeulen.TCP.Tester
             {
                 if (ReadArguments(args, out string type, out string address))
                 {
-                    //address = "wss://demo.piesocket.com/v3/channel_1?api_key=oCdCMcMPQpbvNjUIzqtvF1d2X2okWpDQj4AwARJuAgtjhzKxVEjQU6IdCjwm&notify_self";
-                    //address = "wss://geoeventsample1.esri.com:6143/arcgis/ws/services/FAAStream/StreamServer/subscribe";
-
                     if (type == "server")
                         StartAsServer(address);
                     else if (type == "client")
-                        StartAsClient(address, 1);
+                        StartAsClient(address, 10);
+                    else if (type == "chat")
+                        StartAsChatServer(address);
                 }
 
                 Console.WriteLine("Done!");
@@ -77,8 +82,30 @@ namespace JVermeulen.TCP.Tester
         {
             using (var server = new WsServer(WsEncoder.Text, address, true))
             {
+                server.Monitoring = new WsClient(WsEncoder.Text, "http://grafana.local:3000/api/live/push/test", true);
+                server.Monitoring.OptionRequestHeader = new Tuple<string, string>("Authorization", "Bearer ==");
                 server.OptionLogToConsole = true;
-                //server.OptionBroadcastMessages = true;
+                server.OptionBroadcastMessages = true;
+                server.OptionEchoMessages = true;
+                server.Start();
+
+                string message = null;
+
+                while (message != "exit")
+                {
+                    message = Console.ReadLine();
+
+                    server.Send(message);
+                }
+            }
+        }
+
+        private static void StartAsChatServer(string address)
+        {
+            using (var server = new WsServer(WsEncoder.Text, address, true))
+            {
+                server.OptionLogToConsole = true;
+                server.OptionBroadcastMessages = true;
                 //server.OptionEchoMessages = true;
                 server.Start();
 
@@ -111,19 +138,29 @@ namespace JVermeulen.TCP.Tester
             }
         }
 
+        private static long ToUnixTime(DateTime t)
+        {
+            return ((DateTimeOffset)t.ToUniversalTime()).ToUnixTimeSeconds();
+        }
+
         private static void StartAsClient(string address, int numberOfClients)
         {
-            var clients = new List<WsClient>();
+            Clients = new List<WsClient>();
+            Heartbeat = new Actor(TimeSpan.FromMilliseconds(1000));
+            Heartbeat.OptionSendHeartbeatToOutbox = true;
+            Heartbeat.Outbox.SubscribeSafe(OnHeartbeat);
 
             for (int i = 0; i < numberOfClients; i++)
             {
                 var client = new WsClient(WsEncoder.Text, address, true);
                 client.OptionLogToConsole = true;
-                clients.Add(client);
+            
+                Clients.Add(client);
+                
                 client.Start();
             }
 
-            //clients.ForEach(c => Task.Factory.StartNew(() => PerformanceTest(c)));
+            Heartbeat.Start();
 
             string message = null;
 
@@ -131,15 +168,21 @@ namespace JVermeulen.TCP.Tester
             {
                 message = Console.ReadLine();
 
-                clients.ForEach(c => c.Send(message));
+                if (int.TryParse(message, out int interval))
+                {
+                    Heartbeat.OptionHeartbeatInterval = TimeSpan.FromMilliseconds(interval);
+
+                    Heartbeat.Restart();
+                }
             }
 
-            clients.ForEach(c => c.Stop());
+            Heartbeat.Dispose();
+            Clients.ForEach(c => c.Dispose());
         }
 
-        private static void PerformanceTest(WsClient client)
+        private static void OnHeartbeat(SessionMessage obj)
         {
-            client.Send("12", int.MaxValue, TimeSpan.FromMilliseconds(10));
+            Clients.ForEach(c => c.Send("1234567890"));
         }
     }
 }
