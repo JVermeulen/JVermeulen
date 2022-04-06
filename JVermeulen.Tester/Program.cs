@@ -2,6 +2,7 @@
 using JVermeulen.App.Windows;
 using JVermeulen.MQTT;
 using JVermeulen.Processing;
+using JVermeulen.Spatial.Types;
 using JVermeulen.TCP;
 using JVermeulen.TCP.Core;
 using JVermeulen.TCP.Encoders;
@@ -14,109 +15,20 @@ namespace JVermeulen.Tester
     {
         static void Main(string[] args)
         {
-
-            if (NetworkInfo.TryGetHttpClientSslSupport(out string[] protocols))
-            {
-
-            }
-
-            var manager = new EventLogManager();
-
-            var log = manager.GetOrCreateEventLog(EventLogManager.Application, "Test");
-
-            if (log != null)
-            {
-                log.EntryWritten += Log_EntryWritten;
-                log.EnableRaisingEvents = true;
-
-                Task.Delay(3000).Wait();
-
-                log.WriteEntry("Test", System.Diagnostics.EventLogEntryType.Information);
-
-            }
-
-            Console.ReadLine();
-
-            //using (var client = new MqttClient("PI04.home"))
-            //{
-            //    Task.Delay(120000).Wait();
-            //}
-            //using (var acceptor = new TcpConnector(6000))
-            //{
-            //    acceptor.ClientConnected += (s, e) => Console.WriteLine($"Client {e} connected.");
-            //    acceptor.ClientConnected += (s, e) => e.OptionEchoReceivedData = true;
-            //    acceptor.ClientDisconnected += (s, e) => Console.WriteLine($"Client {e} disconnected.");
-            //    acceptor.StateChanged += (s, e) => Console.WriteLine($"Server started: {e}");
-            //    acceptor.ExceptionOccured += (s, e) => Console.WriteLine($"Server error: {e}");
-            //    acceptor.Start(true);
-
-            //    Task.Delay(1200000).Wait();
-            //}
-
-            //using (var server = new TcpServer<string>(StringTcpEncoder.NullByteUTF8Encoder, 6000))
-            //{
-            //    server.Outbox.OptionWriteToConsole = true;
-            //    server.SubscribeSafe<TcpSession<string>>(OnTcpSession, OnError);
-            //    server.Start();
-
-            //    Console.ReadKey();
-            //}
-
-            //TestAppInfo();
-            //TestNetworkInfo();
+            TestSpatial();
         }
 
-        private static void Log_EntryWritten(object sender, System.Diagnostics.EntryWrittenEventArgs e)
+        private static void TestSpatial()
         {
-            string log = (string)sender.GetType().GetProperty("Log").GetValue(sender, null);
+            var p1 = new Point(0, 0);
+            var p2 = new Point(155000, 463000);
+            var polyline = new Polyline(new Point[] { p1, p2 });
+            var polygon = new Polygon(new Polyline[] { polyline, polyline });
 
-            Console.WriteLine($"Entry written in {e.Entry.MachineName}.{log}.{e.Entry.Source}: {e.Entry.Message}");
-        }
-
-        private static void StartClientAsync(int index)
-        {
-            Task.Run(() => StartClient(index)).ConfigureAwait(false);
-        }
-
-        private static void StartClient(int index)
-        {
-            using (var client = new TcpClient<string>(StringTcpEncoder.NullByteUTF8Encoder, "127.0.0.1", 6000))
-            {
-                client.Start();
-
-                Task.Delay(500).Wait();
-
-                client.Send($"Client {index}");
-
-                Task.Delay(500).Wait();
-            }
-        }
-
-        private static void OnTcpSession(SessionMessage message)
-        {
-            if (message.Find<TcpSession<string>, SessionStatus>(out SessionMessage statusMessage))
-            {
-                //
-            }
-
-            if (message.Find<TcpSession<string>, ContentMessage<string>>(out SessionMessage tcpMessage))
-            {
-                //
-            }
-        }
-
-        private static void OnError(Exception ex)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(ex.Message);
-            Console.ResetColor();
-        }
-
-        private static void OnCompleted()
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("Completed");
-            Console.ResetColor();
+            Console.WriteLine($"{p1}");
+            Console.WriteLine($"{p2}");
+            Console.WriteLine($"{polyline}");
+            Console.WriteLine($"{polygon}");
         }
 
         private static void TestAppInfo()

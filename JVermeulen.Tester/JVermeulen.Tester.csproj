@@ -12,6 +12,7 @@
 		<ProjectReference Include="..\JVermeulen.App\JVermeulen.App.csproj" />
 		<ProjectReference Include="..\JVermeulen.MQTT\JVermeulen.MQTT.csproj" />
 		<ProjectReference Include="..\JVermeulen.Processing\JVermeulen.Processing.csproj" />
+		<ProjectReference Include="..\JVermeulen.Spatial\JVermeulen.Spatial.csproj" />
 		<ProjectReference Include="..\JVermeulen.TCP\JVermeulen.TCP.csproj" />
 	</ItemGroup>
 
